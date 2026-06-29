@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -13,30 +15,50 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      // Simulate API verification/login
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() => _isLoading = false);
+      final authProvider = context.read<AuthProvider>();
+      
+      final success = await authProvider.loginWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+
+      if (mounted) {
+        if (success) {
           Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.errorMessage ?? 'Login gagal. Periksa kembali akun Anda.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
         }
-      });
+      }
     }
   }
 
-  void _handleGoogleSignIn() {
-    setState(() => _isLoading = true);
-    // Simulate Firebase Google Sign-In
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
+  void _handleGoogleSignIn() async {
+    final authProvider = context.read<AuthProvider>();
+    
+    // Default role 'pelanggan' for social sign in.
+    // In production, user will select role or backend queries existence.
+    final success = await authProvider.loginWithGoogle('pelanggan');
+
+    if (mounted) {
+      if (success) {
         Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Google Sign In gagal.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
-    });
+    }
   }
 
   @override
@@ -121,7 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  _isLoading
+                  context.watch<AuthProvider>().isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : ElevatedButton(
                           onPressed: _handleLogin,
@@ -148,6 +170,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: Image.network(
                       'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png',
                       height: 20,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.g_mobiledata_rounded,
+                        color: Colors.redAccent,
+                        size: 24,
+                      ),
                     ),
                     label: const Text(
                       'Google Sign In',

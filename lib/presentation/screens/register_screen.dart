@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -17,18 +19,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   
   String _selectedRole = 'pelanggan'; // 'pelanggan' or 'pengelola_bengkel'
-  bool _isLoading = false;
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      // Simulate registering to backend API
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() => _isLoading = false);
+      final authProvider = context.read<AuthProvider>();
+      
+      final success = await authProvider.registerWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        name: _nameController.text.trim(),
+        role: _selectedRole,
+        phone: _phoneController.text.trim(),
+      );
+
+      if (mounted) {
+        if (success) {
           Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.errorMessage ?? 'Registrasi gagal. Coba lagi.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
         }
-      });
+      }
     }
   }
 
@@ -197,7 +212,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 ),
                 const SizedBox(height: 32),
-                _isLoading
+                context.watch<AuthProvider>().isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
                         onPressed: _handleRegister,
