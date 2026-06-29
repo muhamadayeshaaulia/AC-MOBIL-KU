@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/models/user_model.dart';
 
@@ -30,7 +31,6 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
       );
-      
       if (userCredential.user != null) {
         await userCredential.user!.updateDisplayName(name);
         _currentUser = await _authRemoteDataSource.syncProfileToBackend(
@@ -73,20 +73,33 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Google Sign-In placeholder (requires google_sign_in package dependency)
+  // Real Google Sign-In implementation
   Future<bool> loginWithGoogle(String role) async {
     _setLoading(true);
     _setError(null);
     try {
-      // For testing, since google_sign_in package requires setup, we can use dev bypass or direct firebase call
-      // In production, this would trigger GoogleSignIn().signIn()
-      // Let's fallback to current Firebase user if already authenticated, or trigger sync
-      if (_auth.currentUser != null) {
-        _currentUser = await _authRemoteDataSource.syncProfileToBackend(role: role);
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        _setError("Google Sign In dibatalkan oleh pengguna");
+        return false;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        _currentUser = await _authRemoteDataSource.syncProfileToBackend(
+          role: role,
+          name: googleUser.displayName,
+        );
         notifyListeners();
         return true;
       }
-      _setError("Google Sign In requires physical device configuration");
       return false;
     } catch (e) {
       _setError(e.toString());

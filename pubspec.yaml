@@ -36,6 +36,8 @@ dependencies:
   cloud_firestore: ^5.5.4
   http: ^1.2.1
   provider: ^6.1.2
+  google_sign_in: ^6.2.1
+
 
 
 
