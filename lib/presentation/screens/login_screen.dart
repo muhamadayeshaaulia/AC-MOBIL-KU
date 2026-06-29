@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../providers/auth_provider.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
+import 'role_selection_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,19 +43,31 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleGoogleSignIn() async {
-    final authProvider = context.read<AuthProvider>();
-    
-    // Default role 'pelanggan' for social sign in.
-    // In production, user will select role or backend queries existence.
-    final success = await authProvider.loginWithGoogle('pelanggan');
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        return; // User cancelled the selection, nothing is saved
+      }
 
-    if (mounted) {
-      if (success) {
-        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
-      } else {
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      if (mounted) {
+        // Redirect to Role Selection Screen to complete profile
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RoleSelectionScreen(
+              googleAccount: googleUser,
+              googleAuth: googleAuth,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Google Sign In gagal.'),
+            content: Text('Google Sign In Eror: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );
