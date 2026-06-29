@@ -1,0 +1,95 @@
+import 'dart:convert';
+import 'dart:developer';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+
+class ApiClient {
+  // Using 10.0.2.2 for android emulator local access, fallback to localhost
+  static const String _defaultBaseUrl = 'http://10.0.2.2:8080/api';
+  
+  String get baseUrl => _defaultBaseUrl;
+
+  Future<Map<String, String>> _getHeaders() async {
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final String? token = await user.getIdToken();
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    } else {
+      // Offline / Developer bypass fallback token for testing
+      headers['Authorization'] = 'Bearer dev-token-pelanggan-dimas';
+    }
+
+    return headers;
+  }
+
+  Future<http.Response> get(String path) async {
+    final String url = '$baseUrl$path';
+    final headers = await _getHeaders();
+    log('GET Request: $url');
+    try {
+      final response = await http.get(Uri.parse(url), headers: headers);
+      log('GET Response Code [${response.statusCode}] for: $url');
+      return response;
+    } catch (e) {
+      log('GET Error for $url: $e');
+      rethrow;
+    }
+  }
+
+  Future<http.Response> post(String path, Map<String, dynamic> body) async {
+    final String url = '$baseUrl$path';
+    final headers = await _getHeaders();
+    log('POST Request: $url | Body: ${jsonEncode(body)}');
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      log('POST Response Code [${response.statusCode}] for: $url');
+      return response;
+    } catch (e) {
+      log('POST Error for $url: $e');
+      rethrow;
+    }
+  }
+
+  Future<http.Response> put(String path, Map<String, dynamic> body) async {
+    final String url = '$baseUrl$path';
+    final headers = await _getHeaders();
+    log('PUT Request: $url | Body: ${jsonEncode(body)}');
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      log('PUT Response Code [${response.statusCode}] for: $url');
+      return response;
+    } catch (e) {
+      log('PUT Error for $url: $e');
+      rethrow;
+    }
+  }
+
+  Future<http.Response> delete(String path) async {
+    final String url = '$baseUrl$path';
+    final headers = await _getHeaders();
+    log('DELETE Request: $url');
+    try {
+      final response = await http.delete(Uri.parse(url), headers: headers);
+      log('DELETE Response Code [${response.statusCode}] for: $url');
+      return response;
+    } catch (e) {
+      log('DELETE Error for $url: $e');
+      rethrow;
+    }
+  }
+}
