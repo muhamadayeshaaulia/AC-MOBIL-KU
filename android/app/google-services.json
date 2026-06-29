@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "798505477777",
+    "project_id": "ac-mobil-ku",
+    "storage_bucket": "ac-mobil-ku.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798505477777:android:49005cddec2eb0370f8130",
+        "android_client_info": {
+          "package_name": "com.example.ac_mobil_ku"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "798505477777-m7i98dkbih8ilknio4th0jp4581s2e8c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOalyPZ9CZ01nhO10IoldMT8J1r3yuWMg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798505477777-m7i98dkbih8ilknio4th0jp4581s2e8c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
