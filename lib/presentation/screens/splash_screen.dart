@@ -70,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ),
               const SizedBox(height: 24),
               const Text(
-                'MobilKu AC',
+                'AC MobilKu',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,

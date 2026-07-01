@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/network/api_client.dart';
 import '../providers/auth_provider.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
@@ -22,37 +25,163 @@ class RoleSelectionScreen extends StatefulWidget {
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
+  // Bengkel specific controllers
+  final _bengkelNamaController = TextEditingController();
+  final _bengkelAlamatController = TextEditingController();
+  final _bengkelDeskripsiController = TextEditingController();
+  final _bengkelJamBukaController = TextEditingController(text: '08:00');
+  final _bengkelJamTutupController = TextEditingController(text: '17:00');
+  final _bengkelTeleponController = TextEditingController();
+
+  double _latitude = -6.2000;
+  double _longitude = 106.8166;
+  bool _gpsFetched = false;
+
   String _selectedRole = 'pelanggan'; // 'pelanggan' or 'pengelola_bengkel'
   bool _isSubmitting = false;
+
+  Future<void> _fetchGPSAndAddress() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Layanan lokasi (GPS) dinonaktifkan di perangkat Anda.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Izin akses lokasi ditolak.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Izin lokasi ditolak permanen, silakan aktifkan lewat pengaturan.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _gpsFetched = false;
+    });
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+        _gpsFetched = true;
+      });
+
+      // Reverse Geocoding to get Address
+      List<Placemark> placemarks = await placemarkFromCoordinates(_latitude, _longitude);
+      if (placemarks.isNotEmpty) {
+        final Placemark place = placemarks.first;
+        final String formattedAddress = [
+          if (place.street != null && place.street!.isNotEmpty) place.street,
+          if (place.subLocality != null && place.subLocality!.isNotEmpty) place.subLocality,
+          if (place.locality != null && place.locality!.isNotEmpty) place.locality,
+          if (place.subAdministrativeArea != null && place.subAdministrativeArea!.isNotEmpty) place.subAdministrativeArea,
+          if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) place.administrativeArea,
+          if (place.postalCode != null && place.postalCode!.isNotEmpty) place.postalCode,
+        ].join(', ');
+
+        setState(() {
+          _bengkelAlamatController.text = formattedAddress;
+        });
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('GPS & Alamat berhasil dimuat: $_latitude, $_longitude'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mendeteksi lokasi: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
 
   void _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
+      
       final authProvider = context.read<AuthProvider>();
-      // Perform Firebase Auth with the Google credentials
-      // and call the Go backend api to store details
+      
       try {
-        final success = await authProvider.registerWithEmail(
+        // 1. Authenticate with Firebase & Save User Profile to Backend Go
+        final userSuccess = await authProvider.registerWithEmail(
           email: widget.googleAccount.email,
-          password: 'GoogleSignInBypassSecretPassword123!', // secure dummy pass for firebase credential linkage
+          password: 'GoogleSignInBypassSecretPassword123!', 
           name: widget.googleAccount.displayName ?? 'Google User',
           role: _selectedRole,
           phone: _phoneController.text.trim(),
         );
 
-        if (mounted) {
-          if (success) {
-            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (route) => false);
-          } else {
-            // Clean up / sign out on failure
+        if (!userSuccess) {
+          throw Exception(authProvider.errorMessage ?? 'Gagal membuat akun.');
+        }
+
+        // 2. If the user registers as "Pengelola Bengkel", also create the Bengkel
+        if (_selectedRole == 'pengelola_bengkel') {
+          final apiClient = ApiClient();
+          final response = await apiClient.post('/bengkel', {
+            'nama': _bengkelNamaController.text.trim(),
+            'alamat': _bengkelAlamatController.text.trim(),
+            'latitude': _latitude,
+            'longitude': _longitude,
+            'deskripsi': _bengkelDeskripsiController.text.trim(),
+            'jam_buka': _bengkelJamBukaController.text.trim(),
+            'jam_tutup': _bengkelJamTutupController.text.trim(),
+            'telepon': _bengkelTeleponController.text.trim(),
+            'status': 'aktif',
+          });
+
+          if (response.statusCode != 201 && response.statusCode != 200) {
+            // Rollback/Logout if bengkel creation failed to prevent dirty/half state
             await authProvider.logout();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(authProvider.errorMessage ?? 'Gagal membuat akun.'),
-                backgroundColor: Colors.redAccent,
-              ),
-            );
+            throw Exception('Gagal mendaftarkan data bengkel ke server.');
           }
+        }
+
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (route) => false);
         }
       } catch (e) {
         if (mounted) {
@@ -74,6 +203,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   void dispose() {
     _phoneController.dispose();
+    _bengkelNamaController.dispose();
+    _bengkelAlamatController.dispose();
+    _bengkelDeskripsiController.dispose();
+    _bengkelJamBukaController.dispose();
+    _bengkelJamTutupController.dispose();
+    _bengkelTeleponController.dispose();
     super.dispose();
   }
 
@@ -192,17 +327,136 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
+                
+                // Form input dasar telepon
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    hintText: 'Nomor Telepon WhatsApp',
+                    hintText: 'Nomor Telepon WhatsApp Personal',
                     prefixIcon: Icon(Icons.phone_outlined, color: AppTheme.textSecondaryColor),
                   ),
                   validator: (value) =>
                       value == null || value.isEmpty ? 'Nomor telepon wajib diisi' : null,
                 ),
+                const SizedBox(height: 20),
+
+                // Form Tambahan khusus Pengelola Bengkel
+                if (_selectedRole == 'pengelola_bengkel') ...[
+                  const Divider(color: Color(0xFF334155), height: 32),
+                  const Text(
+                    'Informasi Bengkel AC Anda',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _bengkelNamaController,
+                    decoration: const InputDecoration(
+                      hintText: 'Nama Bengkel AC',
+                      prefixIcon: Icon(Icons.store_rounded, color: AppTheme.textSecondaryColor),
+                    ),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Nama bengkel wajib diisi' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _bengkelAlamatController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'Alamat Lengkap Bengkel',
+                      prefixIcon: Icon(Icons.location_on_outlined, color: AppTheme.textSecondaryColor),
+                    ),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Alamat bengkel wajib diisi' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _bengkelDeskripsiController,
+                    decoration: const InputDecoration(
+                      hintText: 'Deskripsi / Layanan Utama Bengkel',
+                      prefixIcon: Icon(Icons.description_outlined, color: AppTheme.textSecondaryColor),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _bengkelJamBukaController,
+                          decoration: const InputDecoration(
+                            hintText: 'Jam Buka (e.g. 08:00)',
+                            prefixIcon: Icon(Icons.access_time, color: AppTheme.textSecondaryColor),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _bengkelJamTutupController,
+                          decoration: const InputDecoration(
+                            hintText: 'Jam Tutup (e.g. 17:00)',
+                            prefixIcon: Icon(Icons.access_time_filled, color: AppTheme.textSecondaryColor),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _bengkelTeleponController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      hintText: 'Nomor Telepon Kontak Bengkel',
+                      prefixIcon: Icon(Icons.contact_phone_outlined, color: AppTheme.textSecondaryColor),
+                    ),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Nomor telepon kontak bengkel wajib diisi' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // GPS coordinates fetcher simulation
+                  InkWell(
+                    onTap: _fetchGPSAndAddress,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _gpsFetched ? const Color(0xFF10B981).withOpacity(0.1) : AppTheme.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _gpsFetched ? const Color(0xFF10B981) : const Color(0xFF334155),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _gpsFetched ? Icons.gps_fixed : Icons.gps_not_fixed,
+                            color: _gpsFetched ? const Color(0xFF10B981) : AppTheme.textSecondaryColor,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _gpsFetched ? 'GPS Bengkel Terkunci' : 'Deteksi GPS Titik Bengkel',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                Text(
+                                  'Koordinat: ($_latitude, $_longitude)',
+                                  style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!_gpsFetched)
+                            const Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.textSecondaryColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
+                
                 _isSubmitting
                     ? const Center(child: CircularProgressIndicator())
                     : Column(
