@@ -409,7 +409,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                         value == null || value.isEmpty ? 'Nomor telepon kontak bengkel wajib diisi' : null,
                   ),
                   const SizedBox(height: 16),
-                  
                   // GPS coordinates fetcher simulation
                   InkWell(
                     onTap: _fetchGPSAndAddress,
