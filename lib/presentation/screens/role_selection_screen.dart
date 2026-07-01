@@ -72,7 +72,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         return;
       }
     }
-    
     if (permission == LocationPermission.deniedForever) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -104,8 +103,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       List<Placemark> placemarks = await placemarkFromCoordinates(_latitude, _longitude);
       if (placemarks.isNotEmpty) {
         final Placemark place = placemarks.first;
+        final String? streetAddress = (place.street != null && !place.street!.contains('+')) ? place.street : null;
         final String formattedAddress = [
-          if (place.street != null && place.street!.isNotEmpty) place.street,
+          if (streetAddress != null && streetAddress.isNotEmpty) streetAddress,
           if (place.subLocality != null && place.subLocality!.isNotEmpty) place.subLocality,
           if (place.locality != null && place.locality!.isNotEmpty) place.locality,
           if (place.subAdministrativeArea != null && place.subAdministrativeArea!.isNotEmpty) place.subAdministrativeArea,
@@ -117,7 +117,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           _bengkelAlamatController.text = formattedAddress;
         });
       }
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -141,9 +140,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   void _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
-      
       final authProvider = context.read<AuthProvider>();
-      
       try {
         // 1. Authenticate with Firebase & Save User Profile to Backend Go
         final userSuccess = await authProvider.registerWithEmail(
@@ -327,7 +324,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                
                 // Form input dasar telepon
                 TextFormField(
                   controller: _phoneController,
@@ -468,8 +464,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton(
-                            onPressed: () {
-                              Navigator.pop(context); // Go back to login, cancel everything
+                            onPressed: () async {
+                              await GoogleSignIn().signOut();
+                              if (mounted) {
+                                Navigator.pop(context); // Go back to login, cancel everything
+                              }
                             },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
