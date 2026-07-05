@@ -25,15 +25,23 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('EditServiceScreen: editing service map data = ${widget.service}');
     _nameController = TextEditingController(text: widget.service['nama']);
     _descController = TextEditingController(text: widget.service['deskripsi']);
     final price = (widget.service['estimasi_harga'] as num?)?.toDouble() ?? 0.0;
-    _priceController = TextEditingController(text: price.toStringAsFixed(0));
+    _priceController = TextEditingController(text: _formatRupiah(price));
     
     final String rawPhotoUrl = widget.service['foto_url'] ?? '';
     if (rawPhotoUrl.isNotEmpty) {
       _uploadedPhotos.addAll(rawPhotoUrl.split(','));
     }
+  }
+
+  String _formatRupiah(double amount) {
+    final int val = amount.toInt();
+    final String str = val.toString();
+    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    return str.replaceAllMapped(reg, (Match match) => '${match[1]}.');
   }
 
   Future<void> _pickPhoto() async {
@@ -69,11 +77,13 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
     setState(() => _isSubmitting = true);
     try {
       final int id = widget.service['id'] as int;
+      // Clean numeric formatting periods from controller text
+      final cleanPriceStr = _priceController.text.replaceAll('.', '');
       await widget.onUpdateLayanan(
         id,
         _nameController.text.trim(),
         _descController.text.trim(),
-        double.parse(_priceController.text.trim()),
+        double.parse(cleanPriceStr),
         _uploadedPhotos.join(','),
       );
       if (mounted) {
@@ -161,12 +171,14 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Price Field
+              // Price Field formatted dynamically with periods
               TextFormField(
                 controller: _priceController,
                 style: const TextStyle(color: Colors.white),
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [
+                  RupiahInputFormatter(),
+                ],
                 decoration: const InputDecoration(
                   labelText: 'Estimasi Harga Layanan (Rp)',
                   labelStyle: TextStyle(color: AppTheme.textSecondaryColor),
@@ -176,8 +188,9 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Harga tidak boleh kosong';
                   }
-                  if (double.tryParse(value) == null) {
-                    return 'Masukkan angka nominal saja';
+                  final cleanStr = value.replaceAll('.', '');
+                  if (double.tryParse(cleanStr) == null) {
+                    return 'Masukkan nominal angka saja';
                   }
                   return null;
                 },
@@ -315,6 +328,34 @@ class _EditServiceScreenState extends State<EditServiceScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class RupiahInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.selection.baseOffset == 0) {
+      return newValue;
+    }
+
+    final String cleanText = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (cleanText.isEmpty) {
+      return newValue.copyWith(text: '', selection: const TextSelection.collapsed(offset: 0));
+    }
+
+    final double value = double.parse(cleanText);
+    final int val = value.toInt();
+    final String str = val.toString();
+    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    final String formatted = str.replaceAllMapped(reg, (Match match) => '${match[1]}.');
+
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

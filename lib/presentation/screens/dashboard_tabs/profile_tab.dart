@@ -491,7 +491,7 @@ class ProfileTab extends StatelessWidget {
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
-                                            'Estimasi: Rp ${price.toStringAsFixed(0)}',
+                                            'Estimasi: Rp ${_formatRupiah(price)}',
                                             style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
                                           ),
                                         ],
@@ -628,5 +628,12 @@ class ProfileTab extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatRupiah(double amount) {
+    final int val = amount.toInt();
+    final String str = val.toString();
+    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    return str.replaceAllMapped(reg, (Match match) => '${match[1]}.');
   }
 }

@@ -53,10 +53,12 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
 
     setState(() => _isSubmitting = true);
     try {
+      // Clean numeric formatting periods from controller text
+      final cleanPriceStr = _priceController.text.replaceAll('.', '');
       await widget.onAddLayanan(
         _nameController.text.trim(),
         _descController.text.trim(),
-        double.parse(_priceController.text.trim()),
+        double.parse(cleanPriceStr),
         _uploadedPhotos.join(','),
       );
       if (mounted) {
@@ -144,12 +146,14 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Price Field
+              // Price Field formatted dynamically with periods
               TextFormField(
                 controller: _priceController,
                 style: const TextStyle(color: Colors.white),
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [
+                  RupiahInputFormatter(),
+                ],
                 decoration: const InputDecoration(
                   labelText: 'Estimasi Harga Layanan (Rp)',
                   labelStyle: TextStyle(color: AppTheme.textSecondaryColor),
@@ -159,8 +163,9 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Harga tidak boleh kosong';
                   }
-                  if (double.tryParse(value) == null) {
-                    return 'Masukkan angka nominal saja';
+                  final cleanStr = value.replaceAll('.', '');
+                  if (double.tryParse(cleanStr) == null) {
+                    return 'Masukkan nominal angka saja';
                   }
                   return null;
                 },
@@ -298,6 +303,34 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class RupiahInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.selection.baseOffset == 0) {
+      return newValue;
+    }
+
+    final String cleanText = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (cleanText.isEmpty) {
+      return newValue.copyWith(text: '', selection: const TextSelection.collapsed(offset: 0));
+    }
+
+    final double value = double.parse(cleanText);
+    final int val = value.toInt();
+    final String str = val.toString();
+    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    final String formatted = str.replaceAllMapped(reg, (Match match) => '${match[1]}.');
+
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
