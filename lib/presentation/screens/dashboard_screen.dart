@@ -177,6 +177,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _updateLayanan(int id, String nama, String deskripsi, double harga, String fotoUrl) async {
+    if (_myBengkelDetails == null) return;
+    try {
+      final response = await _apiClient.put('/layanan/$id', {
+        'bengkel_id': _myBengkelDetails!['id'],
+        'nama': nama,
+        'deskripsi': deskripsi,
+        'estimasi_harga': harga,
+        'status': 'tersedia',
+        'foto_url': fotoUrl,
+      });
+      if (response.statusCode == 200) {
+        _loadMyServices(_myBengkelDetails!['id']);
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      debugPrint('Failed to update service: $e');
+    }
+  }
+
   Future<void> _updateWorkshopPhoto(String url) async {
     if (_myBengkelDetails == null) return;
     try {
@@ -338,6 +359,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             isServicesLoading: _isServicesLoading,
             onAddLayanan: _addLayanan,
             onDeleteLayanan: _deleteLayanan,
+            onUpdateLayanan: _updateLayanan,
             onUpdateWorkshopPhoto: _updateWorkshopPhoto,
             onUpdateUserPhoto: _updateUserPhoto,
             onLogout: _handleLogout,

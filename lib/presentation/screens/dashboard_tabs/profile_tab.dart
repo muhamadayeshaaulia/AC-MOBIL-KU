@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/network/api_client.dart';
 import '../add_service_screen.dart';
+import '../edit_service_screen.dart';
 
 class ProfileTab extends StatelessWidget {
   final String nama;
@@ -17,6 +18,7 @@ class ProfileTab extends StatelessWidget {
   final bool isServicesLoading;
   final Future<void> Function(String nama, String deskripsi, double harga, String fotoUrl) onAddLayanan;
   final Future<void> Function(int id) onDeleteLayanan;
+  final Future<void> Function(int id, String nama, String deskripsi, double harga, String fotoUrl) onUpdateLayanan;
   final Future<void> Function(String newPhotoUrl) onUpdateWorkshopPhoto;
   final Future<void> Function(String newPhotoUrl) onUpdateUserPhoto;
   final VoidCallback onLogout;
@@ -35,6 +37,7 @@ class ProfileTab extends StatelessWidget {
     required this.isServicesLoading,
     required this.onAddLayanan,
     required this.onDeleteLayanan,
+    required this.onUpdateLayanan,
     required this.onUpdateWorkshopPhoto,
     required this.onUpdateUserPhoto,
     required this.onLogout,
@@ -494,6 +497,24 @@ class ProfileTab extends StatelessWidget {
                                         ],
                                       ),
                                     ),
+                                    
+                                    // EDIT SERVICE BUTTON
+                                    IconButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => EditServiceScreen(
+                                              service: item,
+                                              onUpdateLayanan: onUpdateLayanan,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryColor),
+                                    ),
+                                    
+                                    // DELETE SERVICE BUTTON
                                     IconButton(
                                       onPressed: () async {
                                         final confirm = await showDialog<bool>(
