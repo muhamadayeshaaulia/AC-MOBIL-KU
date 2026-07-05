@@ -142,7 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _addLayanan(String nama, String deskripsi, double harga) async {
+  Future<void> _addLayanan(String nama, String deskripsi, double harga, String fotoUrl) async {
     if (_myBengkelDetails == null) return;
     try {
       final response = await _apiClient.post('/layanan', {
@@ -151,6 +151,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'deskripsi': deskripsi,
         'estimasi_harga': harga,
         'status': 'tersedia',
+        'foto_url': fotoUrl,
       });
       if (response.statusCode == 200 || response.statusCode == 201) {
         _loadMyServices(_myBengkelDetails!['id']);
@@ -173,6 +174,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     } catch (e) {
       debugPrint('Failed to delete service: $e');
+    }
+  }
+
+  Future<void> _updateWorkshopPhoto(String url) async {
+    if (_myBengkelDetails == null) return;
+    try {
+      final response = await _apiClient.put('/bengkel', {
+        'nama': _myBengkelDetails!['nama'],
+        'alamat': _myBengkelDetails!['alamat'],
+        'latitude': _myBengkelDetails!['latitude'],
+        'longitude': _myBengkelDetails!['longitude'],
+        'deskripsi': _myBengkelDetails!['deskripsi'],
+        'jam_buka': _myBengkelDetails!['jam_buka'],
+        'jam_tutup': _myBengkelDetails!['jam_tutup'],
+        'telepon': _myBengkelDetails!['telepon'],
+        'status': _myBengkelDetails!['status'],
+        'foto_url': url,
+      });
+      if (response.statusCode == 200) {
+        _loadMyBengkelDetails();
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      debugPrint('Failed to update workshop cover: $e');
+    }
+  }
+
+  Future<void> _updateUserPhoto(String url) async {
+    try {
+      final success = await context.read<AuthProvider>().updateUserPhoto(url);
+      if (success) {
+        debugPrint('Personal avatar updated successfully!');
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      debugPrint('Failed to update user avatar: $e');
     }
   }
 
@@ -299,6 +338,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             isServicesLoading: _isServicesLoading,
             onAddLayanan: _addLayanan,
             onDeleteLayanan: _deleteLayanan,
+            onUpdateWorkshopPhoto: _updateWorkshopPhoto,
+            onUpdateUserPhoto: _updateUserPhoto,
             onLogout: _handleLogout,
           ),
         ],

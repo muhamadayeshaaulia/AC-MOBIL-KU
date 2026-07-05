@@ -92,4 +92,31 @@ class ApiClient {
       rethrow;
     }
   }
+
+  // Upload image to local server
+  Future<String?> uploadImage(String filePath) async {
+    final String url = '$baseUrl/upload';
+    final headers = await _getHeaders();
+    log('Upload Request: $url | File: $filePath');
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+      headers.forEach((key, value) {
+        if (key != 'Content-Type') {
+          request.headers[key] = value;
+        }
+      });
+      request.files.add(await http.MultipartFile.fromPath('image', filePath));
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      log('Upload Response Code [${response.statusCode}] for: $url');
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        return decoded['url'] as String?;
+      }
+      return null;
+    } catch (e) {
+      log('Upload Error for $url: $e');
+      return null;
+    }
+  }
 }

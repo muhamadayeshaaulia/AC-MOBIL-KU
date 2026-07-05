@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
@@ -39,6 +40,62 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
   String _selectedRole = 'pelanggan'; // 'pelanggan' or 'pengelola_bengkel'
   bool _isSubmitting = false;
+
+  int _selectedPhotoTemplateIndex = -1; // -1 means custom photo is chosen
+  String? _customWorkshopPhotoUrl;
+  final List<String> _photoTemplates = [
+    'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=600',
+    'https://images.unsplash.com/photo-1617886322168-72b886573c35?auto=format&fit=crop&q=80&w=600',
+    'https://images.unsplash.com/photo-1517524206127-48bbd363f3d7?auto=format&fit=crop&q=80&w=600',
+    'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=80&w=600',
+  ];
+
+  Future<void> _pickWorkshopPhotoFromGallery() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (image != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                  SizedBox(width: 16),
+                  Text('Mengunggah gambar...'),
+                ],
+              ),
+              duration: Duration(seconds: 10),
+            ),
+          );
+        }
+
+        final apiClient = ApiClient();
+        final uploadedUrl = await apiClient.uploadImage(image.path);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        }
+
+        if (uploadedUrl != null) {
+          setState(() {
+            _customWorkshopPhotoUrl = uploadedUrl;
+            _selectedPhotoTemplateIndex = -1; // Deselect templates
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _fetchGPSAndAddress() async {
     bool serviceEnabled;
@@ -166,6 +223,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             'jam_tutup': _bengkelJamTutupController.text.trim(),
             'telepon': _bengkelTeleponController.text.trim(),
             'status': 'aktif',
+            'foto_url': _selectedPhotoTemplateIndex == -1
+                ? (_customWorkshopPhotoUrl ?? '')
+                : _photoTemplates[_selectedPhotoTemplateIndex],
           });
 
           if (response.statusCode != 201 && response.statusCode != 200) {
@@ -405,6 +465,85 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                     ),
                     validator: (value) =>
                         value == null || value.isEmpty ? 'Nomor telepon kontak bengkel wajib diisi' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Pilih Foto Sampul Bengkel',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 80,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _photoTemplates.length + 1,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          final isSelected = _selectedPhotoTemplateIndex == -1;
+                          return GestureDetector(
+                            onTap: _pickWorkshopPhotoFromGallery,
+                            child: Container(
+                              width: 110,
+                              decoration: BoxDecoration(
+                                color: AppTheme.cardColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? AppTheme.primaryColor : const Color(0xFF334155),
+                                  width: isSelected ? 3 : 1,
+                                ),
+                              ),
+                              child: _customWorkshopPhotoUrl == null
+                                  ? const Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.add_photo_alternate_outlined, color: AppTheme.textSecondaryColor, size: 24),
+                                        SizedBox(height: 4),
+                                        Text('Dari Galeri', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      ],
+                                    )
+                                  : ClipRRect(
+                                      borderRadius: BorderRadius.circular(9),
+                                      child: Image.network(
+                                        _customWorkshopPhotoUrl!,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                            ),
+                          );
+                        }
+
+                        final templateIndex = index - 1;
+                        final isSelected = _selectedPhotoTemplateIndex == templateIndex;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedPhotoTemplateIndex = templateIndex;
+                            });
+                          },
+                          child: Container(
+                            width: 110,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                                width: 3,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(9),
+                              child: Image.network(
+                                _photoTemplates[templateIndex],
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // GPS coordinates fetcher simulation

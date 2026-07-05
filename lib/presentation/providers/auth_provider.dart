@@ -129,6 +129,29 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateUserPhoto(String url) async {
+    _setLoading(true);
+    _setError(null);
+    try {
+      if (_currentUser != null) {
+        _currentUser = await _authRemoteDataSource.syncProfileToBackend(
+          role: _currentUser!.role,
+          name: _currentUser!.nama,
+          phone: _currentUser!.telepon,
+          photoUrl: url,
+        );
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   // Real Google Sign-In implementation (legacy fallback)
   Future<bool> loginWithGoogle(String role) async {
     _setLoading(true);
