@@ -1,10 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/network/api_client.dart';
-import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/navigation/app_routes.dart';
+import '../../core/network/api_client.dart';
 import '../providers/auth_provider.dart';
+
+// Import Tabs
+import 'dashboard_tabs/recommendations_tab.dart';
+import 'dashboard_tabs/bookings_tab.dart';
+import 'dashboard_tabs/notifications_tab.dart';
+import 'dashboard_tabs/profile_tab.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -14,33 +20,70 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  int _currentIndex = 0;
   final ApiClient _apiClient = ApiClient();
+
+  // Recommendations data
   List<dynamic> _recommendedBengkels = [];
-  bool _isLoading = true;
-  String? _errorMsg;
+  bool _isRecsLoading = true;
+
+  // Bookings data
+  List<dynamic> _bookingHistory = [];
+  bool _isBookingsLoading = true;
+
+  // Bengkel details for Pengelola role
+  Map<String, dynamic>? _myBengkelDetails;
+  bool _isBengkelLoading = false;
 
   @override
   void initState() {
     super.initState();
     _loadRecommendations();
+    _loadBookingHistory();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthProvider>().currentUser;
+      if (user?.role == 'pengelola_bengkel') {
+        _loadMyBengkelDetails();
+      }
+    });
+  }
+
+  Future<void> _loadMyBengkelDetails() async {
+    try {
+      setState(() => _isBengkelLoading = true);
+      final response = await _apiClient.get('/bengkel/my');
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        setState(() {
+          _myBengkelDetails = decoded['data'];
+          _isBengkelLoading = false;
+        });
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      setState(() {
+        _isBengkelLoading = false;
+      });
+      debugPrint('Failed to load my bengkel details: $e');
+    }
   }
 
   Future<void> _loadRecommendations() async {
     try {
+      setState(() => _isRecsLoading = true);
       final response = await _apiClient.get('/recommendations?limit=5');
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         setState(() {
           _recommendedBengkels = decoded['data'] ?? [];
-          _isLoading = false;
+          _isRecsLoading = false;
         });
       } else {
-        throw Exception('Server returned code: ${response.statusCode}');
+        throw Exception();
       }
     } catch (e) {
-      debugPrint('Failed to load real recommendations: $e. Using fallback mockup.');
       setState(() {
-        // Fallback mockup list so UI is always visual and beautiful
         _recommendedBengkels = [
           {
             'nama': 'AC Jaya Abadi Sentosa (Demo)',
@@ -57,209 +100,164 @@ class _DashboardScreenState extends State<DashboardScreen> {
             'status': 'aktif',
           },
         ];
-        _isLoading = false;
+        _isRecsLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadBookingHistory() async {
+    try {
+      setState(() => _isBookingsLoading = true);
+      final response = await _apiClient.get('/booking/history');
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        setState(() {
+          _bookingHistory = decoded['data'] ?? [];
+          _isBookingsLoading = false;
+        });
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      setState(() {
+        _bookingHistory = [
+          {
+            'id': 101,
+            'bengkel': {'nama': 'AC Jaya Abadi Sentosa'},
+            'tanggal': '2026-07-06T10:00:00Z',
+            'status': 'selesai',
+            'total_biaya': 350000,
+            'keluhan': 'AC kurang dingin dan bau apek',
+          },
+          {
+            'id': 102,
+            'bengkel': {'nama': 'Bengkel AC Mobil Dingin Jaya'},
+            'tanggal': '2026-07-08T14:30:00Z',
+            'status': 'diterima',
+            'total_biaya': 150000,
+            'keluhan': 'Tambah Freon R134a',
+          }
+        ];
+        _isBookingsLoading = false;
+      });
+    }
+  }
+
+  void _handleLogout() async {
+    await context.read<AuthProvider>().logout();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
+    final String userNama = user?.nama ?? 'Dimas Prasetyo';
+    final String userEmail = user?.email ?? 'dimas@example.com';
+    final String userRole = user?.role == 'pengelola_bengkel' ? 'Pengelola Bengkel' : 'Pelanggan';
+    final String userPhone = user?.telepon ?? '0812-3456-7890';
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Dashboard Rekomendasi'),
+        title: Text(_getAppBarTitle()),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, AppRoutes.login);
-            },
+          if (_currentIndex == 3)
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+              onPressed: _handleLogout,
+            ),
+        ],
+      ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          RecommendationsTab(
+            userNama: userNama,
+            userRole: userRole,
+            recommendedBengkels: _recommendedBengkels,
+            isLoading: _isRecsLoading,
+            onRefresh: _loadRecommendations,
+          ),
+          BookingsTab(
+            bookingHistory: _bookingHistory,
+            isLoading: _isBookingsLoading,
+            onRefresh: _loadBookingHistory,
+          ),
+          const NotificationsTab(),
+          ProfileTab(
+            nama: userNama,
+            email: userEmail,
+            role: userRole,
+            phone: userPhone,
+            myBengkelDetails: _myBengkelDetails,
+            isBengkelLoading: _isBengkelLoading,
+            onLogout: _handleLogout,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // User greeting and coordinates overview
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.teal.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                    child: const Icon(Icons.person, size: 36, color: AppTheme.primaryColor),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Dimas Prasetyo',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Role: Pelanggan (NIM: 1123150165)',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
-                        ),
-                        SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on, size: 14, color: AppTheme.primaryColor),
-                            SizedBox(width: 4),
-                            Text(
-                              'Jakarta Barat (GPS Terkoneksi)',
-                              style: TextStyle(fontSize: 11, color: AppTheme.primaryColor),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 28),
-            
-            // Header for top CF recommendations
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Top-N Rekomendasi Terdekat',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                Icon(Icons.tune_rounded, size: 20, color: AppTheme.textSecondaryColor),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            _isLoading
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _recommendedBengkels.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                final bengkel = _recommendedBengkels[index];
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              bengkel['nama'],
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: (bengkel['status'] == 'Buka' || bengkel['status'] == 'aktif')
-                                  ? const Color(0xFF10B981).withOpacity(0.1)
-                                  : Colors.redAccent.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              (bengkel['status'] == 'Buka' || bengkel['status'] == 'aktif') ? 'Buka' : 'Tutup',
-                              style: TextStyle(
-                                color: (bengkel['status'] == 'Buka' || bengkel['status'] == 'aktif')
-                                    ? const Color(0xFF10B981)
-                                    : Colors.redAccent,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        bengkel['alamat'] ?? '',
-                        style: const TextStyle(fontSize: 13, color: AppTheme.textSecondaryColor),
-                      ),
-                      const SizedBox(height: 12),
-                      const Divider(color: Color(0xFF334155), height: 1),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${(bengkel['avg_rating_keseluruhan'] ?? 0.0).toStringAsFixed(1)}',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                              const SizedBox(width: 16),
-                              const Icon(Icons.navigation_outlined, color: AppTheme.primaryColor, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${bengkel['distance']} Km',
-                                style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                            ],
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Membuka detail ${bengkel['nama']}...'),
-                                  backgroundColor: AppTheme.primaryColor,
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            child: const Text('PILIH', style: TextStyle(fontSize: 12)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          if (index == 1) {
+            _loadBookingHistory();
+          } else if (index == 0) {
+            _loadRecommendations();
+          } else if (index == 3) {
+            final authProvider = context.read<AuthProvider>();
+            if (authProvider.currentUser?.role == 'pengelola_bengkel') {
+              _loadMyBengkelDetails();
+            }
+          }
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppTheme.cardColor,
+        selectedItemColor: AppTheme.primaryColor,
+        unselectedItemColor: AppTheme.textSecondaryColor,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        unselectedLabelStyle: const TextStyle(fontSize: 11),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home_rounded),
+            label: 'Rekomendasi',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bookmark_border_rounded),
+            activeIcon: Icon(Icons.bookmark_rounded),
+            label: 'Booking',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_none_rounded),
+            activeIcon: Icon(Icons.notifications_rounded),
+            label: 'Notifikasi',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: 'Profil',
+          ),
+        ],
       ),
     );
+  }
+
+  String _getAppBarTitle() {
+    switch (_currentIndex) {
+      case 0:
+        return 'AC MobilKu Rekomendasi';
+      case 1:
+        return 'Reservasi Booking';
+      case 2:
+        return 'Notifikasi Saya';
+      case 3:
+        return 'Profil Pengguna';
+      default:
+        return 'AC MobilKu';
+    }
   }
 }

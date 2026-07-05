@@ -8,7 +8,7 @@ class AuthRemoteDataSource {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
   // Sync profile details to Go MySQL backend
-  Future<UserModel> syncProfileToBackend({required String role, String? name}) async {
+  Future<UserModel> syncProfileToBackend({required String role, String? name, String? phone}) async {
     final User? firebaseUser = _firebaseAuth.currentUser;
     if (firebaseUser == null) {
       throw Exception('No active Firebase user found');
@@ -18,7 +18,7 @@ class AuthRemoteDataSource {
       'role': role,
       'nama': name ?? firebaseUser.displayName ?? '',
       'foto_url': firebaseUser.photoURL ?? '',
-      'telepon': firebaseUser.phoneNumber ?? '',
+      'telepon': phone ?? firebaseUser.phoneNumber ?? '',
       'latitude': 0.0,
       'longitude': 0.0,
     };

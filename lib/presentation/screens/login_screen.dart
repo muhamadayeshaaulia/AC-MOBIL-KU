@@ -43,6 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleGoogleSignIn() async {
+    final authProvider = context.read<AuthProvider>();
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
@@ -51,17 +52,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
+      // Check if profile already exists in backend Go MySQL
+      final bool? isExisting = await authProvider.checkGoogleUserExisting(googleUser, googleAuth);
+
       if (mounted) {
-        // Redirect to Role Selection Screen to complete profile
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RoleSelectionScreen(
-              googleAccount: googleUser,
-              googleAuth: googleAuth,
+        if (isExisting == true) {
+          // Skip role selection, go straight to dashboard
+          Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+        } else if (isExisting == false) {
+          // Redirect to Role Selection Screen to complete profile
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RoleSelectionScreen(
+                googleAccount: googleUser,
+                googleAuth: googleAuth,
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

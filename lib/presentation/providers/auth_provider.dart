@@ -73,7 +73,62 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Real Google Sign-In implementation
+  // Checks if the google authenticated user has a profile in the backend
+  Future<bool?> checkGoogleUserExisting(GoogleSignInAccount googleUser, GoogleSignInAuthentication googleAuth) async {
+    _setLoading(true);
+    _setError(null);
+    try {
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        try {
+          // Attempt to retrieve profile from backend
+          _currentUser = await _authRemoteDataSource.getProfileFromBackend();
+          notifyListeners();
+          return true; // Profile exists! Direct to dashboard
+        } catch (e) {
+          // Profile not found on backend (first time sign in)
+          return false; // Show role selection
+        }
+      }
+      return null;
+    } catch (e) {
+      _setError(e.toString());
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Register Google user profile on backend
+  Future<bool> registerGoogleUser({required String role, required String phone, String? name}) async {
+    _setLoading(true);
+    _setError(null);
+    try {
+      if (_auth.currentUser != null) {
+        _currentUser = await _authRemoteDataSource.syncProfileToBackend(
+          role: role,
+          name: name,
+          phone: phone,
+        );
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Real Google Sign-In implementation (legacy fallback)
   Future<bool> loginWithGoogle(String role) async {
     _setLoading(true);
     _setError(null);

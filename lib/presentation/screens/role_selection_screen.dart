@@ -142,13 +142,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       setState(() => _isSubmitting = true);
       final authProvider = context.read<AuthProvider>();
       try {
-        // 1. Authenticate with Firebase & Save User Profile to Backend Go
-        final userSuccess = await authProvider.registerWithEmail(
-          email: widget.googleAccount.email,
-          password: 'GoogleSignInBypassSecretPassword123!', 
-          name: widget.googleAccount.displayName ?? 'Google User',
+        // 1. Sync User Profile to Backend Go (since Firebase account is already signed in via Google)
+        final userSuccess = await authProvider.registerGoogleUser(
           role: _selectedRole,
           phone: _phoneController.text.trim(),
+          name: widget.googleAccount.displayName,
         );
 
         if (!userSuccess) {
