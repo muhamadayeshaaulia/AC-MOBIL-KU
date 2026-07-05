@@ -53,7 +53,7 @@ class RecommendationsTab extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Role: $userRole (NIM: 1123150165)',
+                          'Role: $userRole',
                           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                         ),
                         const SizedBox(height: 4),

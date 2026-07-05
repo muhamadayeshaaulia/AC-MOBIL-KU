@@ -36,6 +36,7 @@ class AuthProvider extends ChangeNotifier {
         _currentUser = await _authRemoteDataSource.syncProfileToBackend(
           role: role,
           name: name,
+          phone: phone,
         );
         notifyListeners();
         return true;

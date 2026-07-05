@@ -6,6 +6,7 @@ class ProfileTab extends StatelessWidget {
   final String email;
   final String role;
   final String phone;
+  final String userAddress;
   final Map<String, dynamic>? myBengkelDetails;
   final bool isBengkelLoading;
   final VoidCallback onLogout;
@@ -16,6 +17,7 @@ class ProfileTab extends StatelessWidget {
     required this.email,
     required this.role,
     required this.phone,
+    required this.userAddress,
     required this.myBengkelDetails,
     required this.isBengkelLoading,
     required this.onLogout,
@@ -43,13 +45,31 @@ class ProfileTab extends StatelessWidget {
             email,
             style: const TextStyle(fontSize: 14, color: AppTheme.textSecondaryColor),
           ),
+          const SizedBox(height: 8),
+          
+          // Role displayed directly under name/email
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+            ),
+            child: Text(
+              role.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryColor,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
           const SizedBox(height: 32),
           
-          // Detail user
-          _buildProfileItem(Icons.badge_outlined, 'Status Peran', role),
-          _buildProfileItem(Icons.phone_android_outlined, 'Nomor Telepon', phone),
-          _buildProfileItem(Icons.numbers_outlined, 'NIM Mahasiswa', '1123150165'),
-          _buildProfileItem(Icons.location_on_outlined, 'Koordinat Pengguna', 'Jakarta Barat, DKI Jakarta'),
+          // Detail user - phone is hidden for partner role since it's redundant
+          if (role != 'Pengelola Bengkel')
+            _buildProfileItem(Icons.phone_android_outlined, 'Nomor Telepon', phone),
           
           // Workshop Detail Section for Pengelola
           if (role == 'Pengelola Bengkel') ...[
@@ -57,7 +77,7 @@ class ProfileTab extends StatelessWidget {
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Informasi Bengkel AC Mitra',
+                'Informasi Bengkel Anda',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
@@ -81,7 +101,6 @@ class ProfileTab extends StatelessWidget {
                           _buildProfileItem(Icons.location_on_outlined, 'Alamat Bengkel', myBengkelDetails!['alamat'] ?? '-'),
                           _buildProfileItem(Icons.access_time_rounded, 'Jam Kerja', '${myBengkelDetails!['jam_buka'] ?? '-'} - ${myBengkelDetails!['jam_tutup'] ?? '-'}'),
                           _buildProfileItem(Icons.phone_outlined, 'Kontak Bengkel', myBengkelDetails!['telepon'] ?? '-'),
-                          _buildProfileItem(Icons.gps_fixed_rounded, 'Koordinat Bengkel', 'Lat: ${myBengkelDetails!['latitude'] ?? '-'}, Lng: ${myBengkelDetails!['longitude'] ?? '-'}'),
                           if (myBengkelDetails!['deskripsi'] != null && myBengkelDetails!['deskripsi'].toString().isNotEmpty)
                             _buildProfileItem(Icons.info_outline_rounded, 'Deskripsi', myBengkelDetails!['deskripsi']),
                         ],

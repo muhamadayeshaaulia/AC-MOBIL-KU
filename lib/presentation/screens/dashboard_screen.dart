@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/network/api_client.dart';
@@ -35,6 +36,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _myBengkelDetails;
   bool _isBengkelLoading = false;
 
+  // Resolved user address from coords
+  String _userAddress = 'Mendeteksi alamat...';
+
   @override
   void initState() {
     super.initState();
@@ -42,10 +46,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadBookingHistory();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<AuthProvider>().currentUser;
+      if (user != null && user.latitude != 0.0) {
+        _fetchUserAddress(user.latitude, user.longitude);
+      } else {
+        setState(() {
+          _userAddress = 'Lokasi belum diatur (0.0, 0.0)';
+        });
+      }
       if (user?.role == 'pengelola_bengkel') {
         _loadMyBengkelDetails();
       }
     });
+  }
+
+  Future<void> _fetchUserAddress(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        final Placemark place = placemarks.first;
+        final String? streetAddress = (place.street != null && !place.street!.contains('+')) ? place.street : null;
+        final String formattedAddress = [
+          if (streetAddress != null && streetAddress.isNotEmpty) streetAddress,
+          if (place.subLocality != null && place.subLocality!.isNotEmpty) place.subLocality,
+          if (place.locality != null && place.locality!.isNotEmpty) place.locality,
+          if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) place.administrativeArea,
+        ].join(', ');
+        setState(() {
+          _userAddress = formattedAddress;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _userAddress = 'Lat: $lat, Lng: $lng';
+      });
+    }
   }
 
   Future<void> _loadMyBengkelDetails() async {
@@ -58,6 +92,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _myBengkelDetails = decoded['data'];
           _isBengkelLoading = false;
         });
+
+        // Use the bengkel's registered location coordinates for the geocoded address
+        if (_myBengkelDetails != null) {
+          final double bLat = (_myBengkelDetails!['latitude'] as num?)?.toDouble() ?? 0.0;
+          final double bLng = (_myBengkelDetails!['longitude'] as num?)?.toDouble() ?? 0.0;
+          if (bLat != 0.0 && bLng != 0.0) {
+            _fetchUserAddress(bLat, bLng);
+          }
+        }
       } else {
         throw Exception();
       }
@@ -191,6 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             email: userEmail,
             role: userRole,
             phone: userPhone,
+            userAddress: _userAddress,
             myBengkelDetails: _myBengkelDetails,
             isBengkelLoading: _isBengkelLoading,
             onLogout: _handleLogout,
