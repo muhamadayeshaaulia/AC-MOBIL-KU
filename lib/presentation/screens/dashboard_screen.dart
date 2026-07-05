@@ -205,13 +205,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Text(_getAppBarTitle()),
-        actions: [
-          if (_currentIndex == 3)
-            IconButton(
-              icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-              onPressed: _handleLogout,
-            ),
-        ],
       ),
       body: IndexedStack(
         index: _currentIndex,

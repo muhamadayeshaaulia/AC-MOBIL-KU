@@ -162,10 +162,14 @@ class RecommendationsTab extends StatelessWidget {
                             const SizedBox(height: 12),
                             const Divider(color: Color(0xFF334155), height: 1),
                             const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                             Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
                                     const SizedBox(width: 4),
@@ -173,7 +177,7 @@ class RecommendationsTab extends StatelessWidget {
                                       '${(bengkel['avg_rating_keseluruhan'] ?? 0.0).toStringAsFixed(1)}',
                                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                     ),
-                                    const SizedBox(width: 16),
+                                    const SizedBox(width: 8),
                                     const Icon(Icons.navigation_outlined, color: AppTheme.primaryColor, size: 16),
                                     const SizedBox(width: 4),
                                     Text(

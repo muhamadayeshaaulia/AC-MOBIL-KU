@@ -46,7 +46,6 @@ class ProfileTab extends StatelessWidget {
             style: const TextStyle(fontSize: 14, color: AppTheme.textSecondaryColor),
           ),
           const SizedBox(height: 8),
-          
           // Role displayed directly under name/email
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -66,11 +65,9 @@ class ProfileTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          
           // Detail user - phone is hidden for partner role since it's redundant
           if (role != 'Pengelola Bengkel')
             _buildProfileItem(Icons.phone_android_outlined, 'Nomor Telepon', phone),
-          
           // Workshop Detail Section for Pengelola
           if (role == 'Pengelola Bengkel') ...[
             const Divider(color: Color(0xFF334155), height: 40),
@@ -109,16 +106,19 @@ class ProfileTab extends StatelessWidget {
 
           const SizedBox(height: 40),
           
-          ElevatedButton.icon(
-            onPressed: onLogout,
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('KELUAR AKUN'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('KELUAR AKUN'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ),
