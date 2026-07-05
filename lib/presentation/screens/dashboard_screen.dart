@@ -39,6 +39,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Resolved user address from coords
   String _userAddress = 'Mendeteksi alamat...';
 
+  // Services catalog list for manager
+  List<dynamic> _myServices = [];
+  bool _isServicesLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -100,6 +104,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (bLat != 0.0 && bLng != 0.0) {
             _fetchUserAddress(bLat, bLng);
           }
+          // Fetch services catalog
+          final int? bId = _myBengkelDetails!['id'] as int?;
+          if (bId != null) {
+            _loadMyServices(bId);
+          }
         }
       } else {
         throw Exception();
@@ -109,6 +118,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _isBengkelLoading = false;
       });
       debugPrint('Failed to load my bengkel details: $e');
+    }
+  }
+
+  Future<void> _loadMyServices(int bengkelId) async {
+    try {
+      setState(() => _isServicesLoading = true);
+      final response = await _apiClient.get('/layanan/bengkel/$bengkelId');
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        setState(() {
+          _myServices = decoded['data'] ?? [];
+          _isServicesLoading = false;
+        });
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      setState(() {
+        _isServicesLoading = false;
+      });
+      debugPrint('Failed to load services catalog: $e');
+    }
+  }
+
+  Future<void> _addLayanan(String nama, String deskripsi, double harga) async {
+    if (_myBengkelDetails == null) return;
+    try {
+      final response = await _apiClient.post('/layanan', {
+        'bengkel_id': _myBengkelDetails!['id'],
+        'nama': nama,
+        'deskripsi': deskripsi,
+        'estimasi_harga': harga,
+        'status': 'tersedia',
+      });
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _loadMyServices(_myBengkelDetails!['id']);
+      } else {
+        throw Exception(response.body);
+      }
+    } catch (e) {
+      debugPrint('Failed to add service: $e');
+    }
+  }
+
+  Future<void> _deleteLayanan(int id) async {
+    if (_myBengkelDetails == null) return;
+    try {
+      final response = await _apiClient.delete('/layanan/$id');
+      if (response.statusCode == 200) {
+        _loadMyServices(_myBengkelDetails!['id']);
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      debugPrint('Failed to delete service: $e');
     }
   }
 
@@ -228,8 +292,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             role: userRole,
             phone: userPhone,
             userAddress: _userAddress,
+            fotoUrl: user?.fotoUrl ?? '',
             myBengkelDetails: _myBengkelDetails,
             isBengkelLoading: _isBengkelLoading,
+            servicesList: _myServices,
+            isServicesLoading: _isServicesLoading,
+            onAddLayanan: _addLayanan,
+            onDeleteLayanan: _deleteLayanan,
             onLogout: _handleLogout,
           ),
         ],
