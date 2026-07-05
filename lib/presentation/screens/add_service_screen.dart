@@ -169,21 +169,23 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
 
               // Photo Gallery Section Header
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Foto Dokumentasi Jasa',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Unggah foto hasil servis AC',
-                        style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
-                      ),
-                    ],
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Foto Dokumentasi Jasa',
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Unggah foto hasil servis AC',
+                          style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: _isSubmitting ? null : _pickPhoto,
                     icon: const Icon(Icons.add_a_photo_outlined, size: 16),

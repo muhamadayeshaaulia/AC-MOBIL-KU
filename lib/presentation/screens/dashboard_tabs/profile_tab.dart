@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/network/api_client.dart';
+import '../add_service_screen.dart';
 
 class ProfileTab extends StatelessWidget {
   final String nama;
@@ -39,193 +39,6 @@ class ProfileTab extends StatelessWidget {
     required this.onUpdateUserPhoto,
     required this.onLogout,
   });
-
-  void _showAddServiceDialog(BuildContext context) {
-    final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController();
-    final descController = TextEditingController();
-    final priceController = TextEditingController();
-    final List<String> dialogPhotos = [];
-    bool isSubmitting = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1E293B),
-              title: const Text(
-                'Tambah Layanan / Jasa',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: nameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          labelText: 'Nama Layanan',
-                          labelStyle: TextStyle(color: AppTheme.textSecondaryColor),
-                          prefixIcon: Icon(Icons.build_rounded, color: AppTheme.primaryColor),
-                        ),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty ? 'Nama tidak boleh kosong' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: descController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          labelText: 'Deskripsi Layanan',
-                          labelStyle: TextStyle(color: AppTheme.textSecondaryColor),
-                          prefixIcon: Icon(Icons.description_outlined, color: AppTheme.primaryColor),
-                        ),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty ? 'Deskripsi tidak boleh kosong' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: priceController,
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        decoration: const InputDecoration(
-                          labelText: 'Estimasi Harga (Rp)',
-                          labelStyle: TextStyle(color: AppTheme.textSecondaryColor),
-                          prefixIcon: Icon(Icons.payments_outlined, color: AppTheme.primaryColor),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Harga tidak boleh kosong';
-                          }
-                          if (double.tryParse(value) == null) {
-                            return 'Masukkan angka nominal saja';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Photos section for laying out multiple gallery images
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Foto Jasa / Hasil Kerja',
-                              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          TextButton.icon(
-                            onPressed: () async {
-                              final picker = ImagePicker();
-                              final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-                              if (image != null) {
-                                final uploaded = await ApiClient().uploadImage(image.path);
-                                if (uploaded != null) {
-                                  setDialogState(() {
-                                    dialogPhotos.add(uploaded);
-                                  });
-                                }
-                              }
-                            },
-                            icon: const Icon(Icons.add_a_photo_outlined, size: 14),
-                            label: const Text('GALERI', style: TextStyle(fontSize: 11)),
-                          ),
-                        ],
-                      ),
-                      
-                      if (dialogPhotos.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 60,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: dialogPhotos.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 8),
-                            itemBuilder: (ctx, idx) {
-                              return Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      dialogPhotos[idx],
-                                      width: 60,
-                                      height: 60,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 2,
-                                    right: 2,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setDialogState(() {
-                                          dialogPhotos.removeAt(idx);
-                                        });
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(2),
-                                        decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                                        child: const Icon(Icons.close, size: 10, color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('BATAL', style: TextStyle(color: Colors.redAccent)),
-                ),
-                ElevatedButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          if (formKey.currentState!.validate()) {
-                            setDialogState(() => isSubmitting = true);
-                            await onAddLayanan(
-                              nameController.text.trim(),
-                              descController.text.trim(),
-                              double.parse(priceController.text.trim()),
-                              dialogPhotos.join(','), // comma separated list
-                            );
-                            if (context.mounted) {
-                              Navigator.pop(dialogContext);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Layanan berhasil ditambahkan!'),
-                                  backgroundColor: Color(0xFF10B981),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                  child: isSubmitting
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('TAMBAH'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 
   Future<void> _pickImageFromGallery(BuildContext context) async {
     try {
@@ -587,7 +400,16 @@ class ProfileTab extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 TextButton.icon(
-                  onPressed: () => _showAddServiceDialog(context),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddServiceScreen(
+                          onAddLayanan: onAddLayanan,
+                        ),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('TAMBAH'),
                   style: TextButton.styleFrom(
