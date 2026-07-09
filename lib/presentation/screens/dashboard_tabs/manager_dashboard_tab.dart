@@ -39,12 +39,41 @@ class ManagerDashboardTab extends StatelessWidget {
     }
   }
 
+  bool _isBengkelOpen(String? openStr, String? closeStr) {
+    if (openStr == null || closeStr == null || openStr.isEmpty || closeStr.isEmpty) {
+      return false; // Default to closed if hours aren\'t set
+    }
+    try {
+      final now = DateTime.now();
+      final nowMinutes = now.hour * 60 + now.minute;
+      
+      final openParts = openStr.split(':');
+      final closeParts = closeStr.split(':');
+      
+      final openMinutes = int.parse(openParts[0]) * 60 + int.parse(openParts[1]);
+      final closeMinutes = int.parse(closeParts[0]) * 60 + int.parse(closeParts[1]);
+      
+      if (closeMinutes < openMinutes) {
+        // Overnight operating hours support (e.g. 22:00 to 03:00)
+        return nowMinutes >= openMinutes || nowMinutes <= closeMinutes;
+      }
+      return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final int servicesCount = servicesList.length;
     final int bookingsCount = bookingHistory.length;
     final String bengkelName = myBengkelDetails?['nama'] ?? 'Bengkel AC Anda';
-    final String statusBengkel = myBengkelDetails?['status'] == 'aktif' ? 'Buka' : 'Tutup';
+    
+    // Automatically determine Open/Closed status based on operational hours
+    final isOpen = _isBengkelOpen(myBengkelDetails?['jam_buka'], myBengkelDetails?['jam_tutup']);
+    final String statusBengkel = isOpen ? 'Buka' : 'Tutup';
+    final Color statusColor = isOpen ? const Color(0xFF10B981) : Colors.redAccent;
+
     final String fotoUrl = (myBengkelDetails?['foto_url'] != null && myBengkelDetails!['foto_url'].toString().isNotEmpty)
         ? myBengkelDetails!['foto_url']
         : 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=600';
@@ -148,41 +177,51 @@ class ManagerDashboardTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Nama Bengkel:',
-                          style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          bengkelName,
-                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Nama Bengkel:',
+                            style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            bengkelName,
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Jam Operasional: ${myBengkelDetails?['jam_buka'] ?? '-'} - ${myBengkelDetails?['jam_tutup'] ?? '-'}',
+                            style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 10),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+                        border: Border.all(color: statusColor.withOpacity(0.2)),
                       ),
                       child: Row(
                         children: [
                           Container(
                             width: 6,
                             height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF10B981),
+                            decoration: BoxDecoration(
+                              color: statusColor,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: 6),
                           Text(
                             'Status: $statusBengkel',
-                            style: const TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
