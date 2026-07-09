@@ -221,6 +221,22 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateLocation(double lat, double lng) {
+    if (_currentUser != null) {
+      _currentUser = UserModel(
+        uid: _currentUser!.uid,
+        email: _currentUser!.email,
+        nama: _currentUser!.nama,
+        role: _currentUser!.role,
+        latitude: lat,
+        longitude: lng,
+        telepon: _currentUser!.telepon,
+        fotoUrl: _currentUser!.fotoUrl,
+      );
+      notifyListeners();
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

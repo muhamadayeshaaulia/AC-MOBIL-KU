@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/network/api_client.dart';
@@ -58,9 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (user != null && user.latitude != 0.0) {
         _fetchUserAddress(user.latitude, user.longitude);
       } else {
-        setState(() {
-          _userAddress = 'Lokasi belum diatur (0.0, 0.0)';
-        });
+        _checkAndRequestLocation();
       }
       if (user?.role == 'pengelola_bengkel') {
         _loadMyBengkelDetails();
@@ -87,6 +86,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       setState(() {
         _userAddress = 'Lat: $lat, Lng: $lng';
+      });
+    }
+  }
+
+  Future<void> _checkAndRequestLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      setState(() {
+        _userAddress = 'Layanan lokasi tidak aktif';
+      });
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        setState(() {
+          _userAddress = 'Izin lokasi ditolak';
+        });
+        return;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      setState(() {
+        _userAddress = 'Izin lokasi ditolak permanen';
+      });
+      return;
+    } 
+
+    setState(() {
+      _userAddress = 'Mendeteksi lokasi GPS...';
+    });
+
+    try {
+      final Position position = await Geolocator.getCurrentPosition();
+      
+      // Update backend
+      await _apiClient.post('/user/location', {
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+      });
+
+      // Update provider and ui
+      if (mounted) {
+         context.read<AuthProvider>().updateLocation(position.latitude, position.longitude);
+         _fetchUserAddress(position.latitude, position.longitude);
+         _loadRecommendations(); // Reload recommendations with new coordinates
+      }
+    } catch(e) {
+      debugPrint("Failed to update location: $e");
+      setState(() {
+        _userAddress = 'Gagal mendeteksi lokasi';
       });
     }
   }
@@ -408,6 +464,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               : RecommendationsTab(
                   userNama: userNama,
                   userRole: userRole,
+                  userAddress: _userAddress,
                   recommendedBengkels: _recommendedBengkels,
                   isLoading: _isRecsLoading,
                   onRefresh: _loadRecommendations,

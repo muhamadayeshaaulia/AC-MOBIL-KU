@@ -7,6 +7,7 @@ import '../bengkel_detail_screen.dart';
 class RecommendationsTab extends StatelessWidget {
   final String userNama;
   final String userRole;
+  final String userAddress;
   final List<dynamic> recommendedBengkels;
   final bool isLoading;
   final Future<void> Function() onRefresh;
@@ -15,6 +16,7 @@ class RecommendationsTab extends StatelessWidget {
     super.key,
     required this.userNama,
     required this.userRole,
+    required this.userAddress,
     required this.recommendedBengkels,
     required this.isLoading,
     required this.onRefresh,
@@ -60,14 +62,15 @@ class RecommendationsTab extends StatelessWidget {
                           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
                         ),
                         const SizedBox(height: 4),
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.gps_fixed, size: 12, color: AppTheme.primaryColor),
-                            SizedBox(width: 4),
+                            const Icon(Icons.gps_fixed, size: 12, color: AppTheme.primaryColor),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                'Jakarta Barat (GPS Terkoneksi)',
-                                style: TextStyle(fontSize: 11, color: AppTheme.primaryColor),
+                                userAddress,
+                                style: const TextStyle(fontSize: 11, color: AppTheme.primaryColor),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -79,7 +82,6 @@ class RecommendationsTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 28),
-            
             // Header for top CF recommendations
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -100,16 +102,27 @@ class RecommendationsTab extends StatelessWidget {
                       child: CircularProgressIndicator(),
                     ),
                   )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: recommendedBengkels.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final bengkel = recommendedBengkels[index];
-                      return BengkelCardWithCatalog(bengkel: bengkel, index: index);
-                    },
-                  ),
+                : recommendedBengkels.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Center(
+                          child: Text(
+                            'Belum ada rekomendasi bengkel di sekitar Anda saat ini.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: recommendedBengkels.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          final bengkel = recommendedBengkels[index];
+                          return BengkelCardWithCatalog(bengkel: bengkel, index: index);
+                        },
+                      ),
           ],
         ),
       ),
@@ -140,7 +153,12 @@ class _BengkelCardWithCatalogState extends State<BengkelCardWithCatalog> {
 
   Future<void> _fetchLayanan() async {
     try {
-      final int bengkelId = widget.bengkel['id'] as int;
+      final idVal = widget.bengkel['id'];
+      if (idVal == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      final int bengkelId = (idVal as num?)?.toInt() ?? int.tryParse(idVal.toString()) ?? 0;
       final response = await _apiClient.get('/layanan/bengkel/$bengkelId');
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -150,6 +168,7 @@ class _BengkelCardWithCatalogState extends State<BengkelCardWithCatalog> {
         });
       }
     } catch (e) {
+      print('Error fetching layanan for bengkel ${widget.bengkel['id']}: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -258,35 +277,38 @@ class _BengkelCardWithCatalogState extends State<BengkelCardWithCatalog> {
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
               )
-            else if (_layanans.isNotEmpty) ...[
+            else ...[
               const Text('Katalog Jasa:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              SizedBox(
-                height: 32,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _layanans.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) {
-                    final l = _layanans[i];
-                    final double harga = (l['estimasi_harga'] as num?)?.toDouble() ?? 0;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF334155),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(l['nama'] ?? '-', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                          const SizedBox(width: 6),
-                          Text(_formatRupiah(harga), style: const TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    );
-                  },
+              if (_layanans.isEmpty)
+                const Text('Belum ada jasa ditambahkan.', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11, fontStyle: FontStyle.italic))
+              else
+                SizedBox(
+                  height: 32,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _layanans.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      final l = _layanans[i];
+                      final double harga = (l['estimasi_harga'] as num?)?.toDouble() ?? 0;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF334155),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(l['nama'] ?? '-', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                            const SizedBox(width: 6),
+                            Text(_formatRupiah(harga), style: const TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
               const SizedBox(height: 12),
             ],
             
@@ -311,7 +333,7 @@ class _BengkelCardWithCatalogState extends State<BengkelCardWithCatalog> {
                     const Icon(Icons.navigation_outlined, color: AppTheme.primaryColor, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      '${bengkel['distance'] ?? 0.0} Km',
+                      '${(bengkel['distance'] as num?)?.toStringAsFixed(1) ?? '0.0'} Km',
                       style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ],

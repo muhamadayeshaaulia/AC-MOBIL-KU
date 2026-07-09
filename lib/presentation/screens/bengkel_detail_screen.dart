@@ -30,7 +30,7 @@ class _BengkelDetailScreenState extends State<BengkelDetailScreen> {
 
   Future<void> _loadLayanan() async {
     try {
-      final int bengkelId = widget.bengkel['id'] as int;
+      final int bengkelId = (widget.bengkel['id'] as num?)?.toInt() ?? int.parse(widget.bengkel['id'].toString());
       final response = await _apiClient.get('/layanan/bengkel/$bengkelId');
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -40,13 +40,14 @@ class _BengkelDetailScreenState extends State<BengkelDetailScreen> {
         });
       }
     } catch (e) {
+      print('Error loading layanan: $e');
       setState(() => _isLoadingLayanan = false);
     }
   }
 
   Future<void> _loadReviews() async {
     try {
-      final int bengkelId = widget.bengkel['id'] as int;
+      final int bengkelId = (widget.bengkel['id'] as num?)?.toInt() ?? int.parse(widget.bengkel['id'].toString());
       final response = await _apiClient.get('/rating/bengkel/$bengkelId');
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -56,6 +57,7 @@ class _BengkelDetailScreenState extends State<BengkelDetailScreen> {
         });
       }
     } catch (e) {
+      print('Error loading reviews: $e');
       setState(() => _isLoadingReviews = false);
     }
   }
