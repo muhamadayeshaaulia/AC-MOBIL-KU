@@ -228,6 +228,16 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             'Estimasi Biaya: Rp ${_formatRupiah(harga)}',
                             style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Metode: ${booking['metode_pembayaran'] ?? '-'}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'DP Masuk: Rp ${_formatRupiah((booking['nominal_dp'] as num?)?.toDouble() ?? 0.0)}',
+                            style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
                           const SizedBox(height: 12),
                           
                           // Customer notes (catatan)

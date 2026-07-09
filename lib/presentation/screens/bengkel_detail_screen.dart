@@ -334,6 +334,28 @@ class _BengkelDetailScreenState extends State<BengkelDetailScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.orangeAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Icon(Icons.info_outline_rounded, color: Colors.orangeAccent, size: 14),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Harga di atas hanyalah estimasi dan dapat berubah (lebih atau kurang) tergantung pada hasil pengecekan dan proses perbaikan.',
+                          style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
@@ -368,7 +390,14 @@ class _BengkelDetailScreenState extends State<BengkelDetailScreen> {
     final pelanggan = review['pelanggan'] ?? {};
     final String pelangganNama = pelanggan['nama'] ?? 'Pelanggan';
     final int kualitas = review['rating_kualitas'] ?? 5;
+    final int harga = review['rating_harga'] ?? 5;
     final String ulasan = review['ulasan'] ?? '';
+    
+    // Check if there is a booked service linked
+    String layananName = '';
+    if (review['booking'] != null && review['booking']['layanan'] != null) {
+      layananName = review['booking']['layanan']['nama'] ?? '';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -392,7 +421,32 @@ class _BengkelDetailScreenState extends State<BengkelDetailScreen> {
               Expanded(
                 child: Text(pelangganNama, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               ),
+            ],
+          ),
+          if (layananName.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Layanan: $layananName',
+                style: const TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('Kualitas:', style: TextStyle(color: Colors.white54, fontSize: 10)),
+              const SizedBox(width: 4),
               _buildStars(kualitas.toDouble()),
+              const SizedBox(width: 12),
+              const Text('Harga:', style: TextStyle(color: Colors.white54, fontSize: 10)),
+              const SizedBox(width: 4),
+              _buildStars(harga.toDouble()),
             ],
           ),
           if (ulasan.isNotEmpty) ...[

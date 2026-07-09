@@ -36,7 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   bool _isRecsLoading = true;
   double _filterMaxDistance = 50.0;
   double? _filterMaxHarga; // null means no limit
-  String _filterSortBy = 'rekomendasi'; // 'rekomendasi', 'jarak', 'rating', 'harga'
+  Set<String> _activeFilters = {'rekomendasi'}; // 'rekomendasi', 'jarak', 'rating', 'harga'
 
   // Bookings data
   List<dynamic> _bookingHistory = [];
@@ -381,27 +381,30 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   }
 
   void _applyFilters() {
-    debugPrint('Applying filters: maxDistance=$_filterMaxDistance, sortBy=$_filterSortBy');
+    debugPrint('Applying filters: maxDistance=$_filterMaxDistance, sortBy=$_activeFilters');
     debugPrint('Original bengkel count: ${_allRecommendedBengkels.length}');
 
     List<dynamic> filtered = _allRecommendedBengkels.where((b) {
       final double distance = (b['distance'] as num?)?.toDouble() ?? 0.0;
       final double minHarga = (b['min_harga'] as num?)?.toDouble() ?? 0.0;
-      bool passDistance = distance <= _filterMaxDistance;
-      bool passHarga = _filterMaxHarga == null || minHarga <= _filterMaxHarga!;
+      final double avgRating = (b['avg_rating_keseluruhan'] as num?)?.toDouble() ?? 0.0;
 
-      return passDistance && passHarga;
+      bool passDistance = !_activeFilters.contains('jarak') || distance <= _filterMaxDistance;
+      bool passHarga = !_activeFilters.contains('harga') || _filterMaxHarga == null || minHarga <= _filterMaxHarga!;
+      bool passRating = !_activeFilters.contains('rating') || avgRating >= 2.5;
+
+      return passDistance && passHarga && passRating;
     }).toList();
 
     debugPrint('Filtered count by distance: ${filtered.length}');
 
-    if (_filterSortBy == 'jarak') {
+    if (_activeFilters.contains('jarak')) {
       filtered.sort((a, b) => ((a['distance'] as num?)?.toDouble() ?? 0.0)
           .compareTo((b['distance'] as num?)?.toDouble() ?? 0.0));
-    } else if (_filterSortBy == 'rating') {
+    } else if (_activeFilters.contains('rating')) {
       filtered.sort((a, b) => ((b['avg_rating_keseluruhan'] as num?)?.toDouble() ?? 0.0)
           .compareTo((a['avg_rating_keseluruhan'] as num?)?.toDouble() ?? 0.0));
-    } else if (_filterSortBy == 'harga') {
+    } else if (_activeFilters.contains('harga')) {
       filtered.sort((a, b) => ((b['avg_rating_harga'] as num?)?.toDouble() ?? 0.0)
           .compareTo((a['avg_rating_harga'] as num?)?.toDouble() ?? 0.0));
     }
@@ -415,7 +418,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
   void _resetFilters() {
     setState(() {
-      _filterSortBy = 'rekomendasi';
+      _activeFilters = {'rekomendasi'};
       _filterMaxDistance = 50.0;
       _filterMaxHarga = null;
     });
@@ -452,84 +455,100 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                   Wrap(
                     spacing: 12,
                     children: [
-                      ChoiceChip(
+                      FilterChip(
                         label: const Text('Rekomendasi'),
-                        selected: _filterSortBy == 'rekomendasi',
+                        selected: _activeFilters.contains('rekomendasi'),
                         onSelected: (val) {
-                          if (val) setModalState(() => _filterSortBy = 'rekomendasi');
+                          setModalState(() {
+                            if (val) _activeFilters.add('rekomendasi');
+                            else _activeFilters.remove('rekomendasi');
+                          });
                         },
                       ),
-                      ChoiceChip(
+                      FilterChip(
                         label: const Text('Jarak Terdekat'),
-                        selected: _filterSortBy == 'jarak',
+                        selected: _activeFilters.contains('jarak'),
                         onSelected: (val) {
-                          if (val) setModalState(() => _filterSortBy = 'jarak');
+                          setModalState(() {
+                            if (val) _activeFilters.add('jarak');
+                            else _activeFilters.remove('jarak');
+                          });
                         },
                       ),
-                      ChoiceChip(
+                      FilterChip(
                         label: const Text('Rating Tertinggi'),
-                        selected: _filterSortBy == 'rating',
+                        selected: _activeFilters.contains('rating'),
                         onSelected: (val) {
-                          if (val) setModalState(() => _filterSortBy = 'rating');
+                          setModalState(() {
+                            if (val) _activeFilters.add('rating');
+                            else _activeFilters.remove('rating');
+                          });
                         },
                       ),
-                      ChoiceChip(
+                      FilterChip(
                         label: const Text('Harga Terjangkau'),
-                        selected: _filterSortBy == 'harga',
+                        selected: _activeFilters.contains('harga'),
                         onSelected: (val) {
-                          if (val) setModalState(() => _filterSortBy = 'harga');
+                          setModalState(() {
+                            if (val) _activeFilters.add('harga');
+                            else _activeFilters.remove('harga');
+                          });
                         },
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Jarak Maksimal', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13)),
-                      Text('${_filterMaxDistance.toInt()} km',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                    ],
-                  ),
-                  Slider(
-                    value: _filterMaxDistance,
-                    min: 5.0,
-                    max: 50.0,
-                    divisions: 9,
-                    activeColor: AppTheme.primaryColor,
-                    inactiveColor: const Color(0xFF334155),
-                    onChanged: (val) {
-                      setModalState(() => _filterMaxDistance = val);
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  const Text('Batas Harga (Estimasi Terendah)', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.5)),
-                      borderRadius: BorderRadius.circular(12),
+                  if (_activeFilters.contains('jarak')) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Jarak Maksimal', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13)),
+                        Text('${_filterMaxDistance.toInt()} km',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                      ],
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<double?>(
-                        value: _filterMaxHarga,
-                        isExpanded: true,
-                        dropdownColor: AppTheme.cardColor,
-                        icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
-                        items: const [
-                          DropdownMenuItem(value: null, child: Text('Semua Harga')),
-                          DropdownMenuItem(value: 500000.0, child: Text('Di bawah Rp 500.000')),
-                          DropdownMenuItem(value: 1000000.0, child: Text('Di bawah Rp 1.000.000')),
-                          DropdownMenuItem(value: 2000000.0, child: Text('Di bawah Rp 2.000.000')),
-                          DropdownMenuItem(value: 5000000.0, child: Text('Di bawah Rp 5.000.000')),
-                        ],
-                        onChanged: (val) {
-                          setModalState(() => _filterMaxHarga = val);
-                        },
+                    Slider(
+                      value: _filterMaxDistance,
+                      min: 5.0,
+                      max: 50.0,
+                      divisions: 9,
+                      activeColor: AppTheme.primaryColor,
+                      inactiveColor: const Color(0xFF334155),
+                      onChanged: (val) {
+                        setModalState(() => _filterMaxDistance = val);
+                      },
+                    ),
+                  ],
+                  if (_activeFilters.contains('harga')) ...[
+                    const SizedBox(height: 24),
+                    const Text('Batas Harga (Estimasi Terendah)', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.5)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<double?>(
+                          value: _filterMaxHarga,
+                          isExpanded: true,
+                          dropdownColor: AppTheme.cardColor,
+                          icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+                          items: const [
+                            DropdownMenuItem(value: null, child: Text('Semua Harga')),
+                            DropdownMenuItem(value: 500000.0, child: Text('Di bawah Rp 500.000')),
+                            DropdownMenuItem(value: 1000000.0, child: Text('Di bawah Rp 1.000.000')),
+                            DropdownMenuItem(value: 2000000.0, child: Text('Di bawah Rp 2.000.000')),
+                            DropdownMenuItem(value: 5000000.0, child: Text('Di bawah Rp 5.000.000')),
+                          ],
+                          onChanged: (val) {
+                            setModalState(() => _filterMaxHarga = val);
+                          },
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,

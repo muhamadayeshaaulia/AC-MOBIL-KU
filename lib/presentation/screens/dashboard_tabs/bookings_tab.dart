@@ -4,6 +4,7 @@ import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/network/api_client.dart';
 
 class BookingsTab extends StatelessWidget {
   final List<dynamic> bookingHistory;
@@ -134,6 +135,22 @@ class BookingsTab extends StatelessWidget {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
                               ),
+                              if (status == 'selesai' && booking['rating'] == null) ...[
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    _showRatingDialog(context, booking);
+                                  },
+                                  icon: const Icon(Icons.star_rounded, size: 14),
+                                  label: const Text('RATING', style: TextStyle(fontSize: 11)),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    backgroundColor: Colors.orange,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ]
                             ],
                           )
                         ],
@@ -141,6 +158,101 @@ class BookingsTab extends StatelessWidget {
                     );
                   },
                 ),
+    );
+  }
+
+  void _showRatingDialog(BuildContext context, Map<String, dynamic> booking) {
+    int ratingKualitas = 5;
+    int ratingHarga = 5;
+    TextEditingController ulasanController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          Widget buildStars(int current, Function(int) onChanged) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                return GestureDetector(
+                  onTap: () => onChanged(index + 1),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: Icon(
+                      index < current ? Icons.star_rounded : Icons.star_border_rounded,
+                      color: Colors.orange,
+                      size: 32,
+                    ),
+                  ),
+                );
+              }),
+            );
+          }
+
+          return AlertDialog(
+            backgroundColor: AppTheme.cardColor,
+            title: const Text('Beri Rating', style: TextStyle(color: Colors.white)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Rating Kualitas Layanan', style: TextStyle(color: Colors.white70)),
+                  buildStars(ratingKualitas, (v) => setState(() => ratingKualitas = v)),
+                  const SizedBox(height: 16),
+                  const Text('Rating Harga', style: TextStyle(color: Colors.white70)),
+                  buildStars(ratingHarga, (v) => setState(() => ratingHarga = v)),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: ulasanController,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Tulis ulasan pengalaman Anda...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  )
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal', style: TextStyle(color: Colors.white54)),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting ? null : () async {
+                  setState(() => isSubmitting = true);
+                  try {
+                    final ApiClient apiClient = ApiClient();
+                    final response = await apiClient.post('/rating', {
+                      'booking_id': booking['id'],
+                      'rating_kualitas': ratingKualitas,
+                      'rating_harga': ratingHarga,
+                      'ulasan': ulasanController.text,
+                    });
+                    if (response.statusCode == 201) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Terima kasih atas ulasannya!')));
+                      onRefresh();
+                    } else {
+                      throw Exception();
+                    }
+                  } catch (e) {
+                    setState(() => isSubmitting = false);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal mengirim rating.')));
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+                child: isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Kirim', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
