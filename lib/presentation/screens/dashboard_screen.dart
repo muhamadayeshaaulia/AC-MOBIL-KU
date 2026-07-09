@@ -26,7 +26,7 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   final ApiClient _apiClient = ApiClient();
 
@@ -52,19 +52,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadRecommendations();
     _loadBookingHistory();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = context.read<AuthProvider>().currentUser;
-      if (user != null && user.latitude != 0.0) {
-        _fetchUserAddress(user.latitude, user.longitude);
-      } else {
+      if (user != null) {
+        // Automatically check and update location every time the app is opened
         _checkAndRequestLocation();
       }
       if (user?.role == 'pengelola_bengkel') {
         _loadMyBengkelDetails();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final user = context.read<AuthProvider>().currentUser;
+      if (user != null) {
+        _checkAndRequestLocation();
+      }
+    }
   }
 
   Future<void> _fetchUserAddress(double lat, double lng) async {
@@ -467,7 +483,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   userAddress: _userAddress,
                   recommendedBengkels: _recommendedBengkels,
                   isLoading: _isRecsLoading,
-                  onRefresh: _loadRecommendations,
+                  onRefresh: () async {
+                    await _checkAndRequestLocation();
+                  },
                 ),
           userRole == 'Pengelola Bengkel'
               ? const ManagerInfoTab()
