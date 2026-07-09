@@ -62,7 +62,7 @@ class BookingsTab extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Order #${booking['id']}',
+                                booking['order_number'] ?? 'Order #${booking['id']}',
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                               ),
                               Container(
@@ -302,7 +302,7 @@ class BookingsTab extends StatelessWidget {
                       const SizedBox(height: 20),
                       Container(height: 1, color: Colors.black26, width: double.infinity),
                       const SizedBox(height: 16),
-                      _buildStrukRow('ID Reservasi', '#${booking['id']}'),
+                      _buildStrukRow('ID Order', booking['order_number'] ?? '#${booking['id']}'),
                       _buildStrukRow('Bengkel', booking['bengkel']?['nama'] ?? '-'),
                       _buildStrukRow('Layanan', booking['layanan']?['nama'] ?? '-'),
                       _buildStrukRow('Jadwal', formatTanggal(booking['tanggal_booking'])),
@@ -342,12 +342,13 @@ class BookingsTab extends StatelessWidget {
                             final image = await screenshotController.capture(delay: const Duration(milliseconds: 10));
                             if (image != null) {
                               final directory = await getTemporaryDirectory();
-                              final imagePath = await File('${directory.path}/struk_dp_${booking['id']}.png').create();
+                              final String outFileName = booking['order_number'] ?? booking['id'].toString();
+                              final imagePath = await File('${directory.path}/struk_dp_$outFileName.png').create();
                               await imagePath.writeAsBytes(image);
                               
                               if (context.mounted) {
                                 Navigator.pop(ctx);
-                                await Share.shareXFiles([XFile(imagePath.path)], text: 'Struk DP Reservasi #${booking['id']}');
+                                await Share.shareXFiles([XFile(imagePath.path)], text: 'Struk DP Reservasi ${booking['order_number'] ?? '#${booking['id']}'}');
                               }
                             }
                           } catch (e) {

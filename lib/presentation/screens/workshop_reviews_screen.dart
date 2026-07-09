@@ -116,6 +116,10 @@ class _WorkshopReviewsScreenState extends State<WorkshopReviewsScreen> {
                     final String pelangganNama = pelanggan['nama'] ?? 'Pelanggan';
                     final String fotoUrl = pelanggan['foto_url'] ?? '';
 
+                    final booking = review['booking'] ?? {};
+                    final layanan = booking['layanan'] ?? {};
+                    final String layananNama = layanan['nama'] ?? 'Layanan AC';
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(16),
@@ -153,6 +157,18 @@ class _WorkshopReviewsScreenState extends State<WorkshopReviewsScreen> {
                                       style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 10),
                                     ),
                                   ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white10),
+                                ),
+                                child: Text(
+                                  layananNama,
+                                  style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 10, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ],

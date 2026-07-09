@@ -118,11 +118,15 @@ class _BookingScreenState extends State<BookingScreen> {
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final decoded = jsonDecode(response.body);
+        final String orderNumber = decoded['data'] != null ? (decoded['data']['order_number'] ?? '-') : '-';
+
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => PaymentSuccessScreen(
+                orderNumber: orderNumber,
                 bengkelNama: widget.bengkel['nama'] ?? '-',
                 layananNama: widget.selectedLayanan['nama'] ?? '-',
                 jadwal: formattedDate,

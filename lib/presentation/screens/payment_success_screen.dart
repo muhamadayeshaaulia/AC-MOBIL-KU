@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
+  final String orderNumber;
   final String bengkelNama;
   final String layananNama;
   final String jadwal;
@@ -10,6 +11,7 @@ class PaymentSuccessScreen extends StatelessWidget {
 
   const PaymentSuccessScreen({
     super.key,
+    required this.orderNumber,
     required this.bengkelNama,
     required this.layananNama,
     required this.jadwal,
@@ -107,6 +109,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                   children: [
                     const Text('Rincian Pembayaran', style: TextStyle(color: AppTheme.primaryColor, fontSize: 16, fontWeight: FontWeight.bold)),
                     const Divider(color: Colors.white10, height: 32),
+                    _buildDetailRow('ID Order', orderNumber),
                     _buildDetailRow('Bengkel', bengkelNama),
                     _buildDetailRow('Layanan', layananNama),
                     _buildDetailRow('Jadwal', jadwal),

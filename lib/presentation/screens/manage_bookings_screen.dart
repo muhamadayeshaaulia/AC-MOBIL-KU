@@ -171,9 +171,12 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                _formatDateTime(tanggal),
-                                style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                              Expanded(
+                                child: Text(
+                                  '${booking['order_number'] ?? '#$bookingId'} • ${_formatDateTime(tanggal)}',
+                                  style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 class ApiClient {
   // Using 10.0.2.2 for android emulator local access, fallback to localhost
-  static const String _defaultBaseUrl = 'http://172.20.10.14:8080/api';
+  static const String _defaultBaseUrl = 'http://192.168.110.201:8080/api';
 
   String get baseUrl => _defaultBaseUrl;
 
