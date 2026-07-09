@@ -429,7 +429,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: (userRole == 'Pengelola Bengkel' && _currentIndex == 0)
+      appBar: (_currentIndex == 0)
           ? null
           : AppBar(
               title: Text(_getAppBarTitle()),

@@ -16,6 +16,21 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  // Check persistent login state on app launch
+  Future<bool> checkLoginState() async {
+    if (_auth.currentUser != null) {
+      try {
+        _currentUser = await _authRemoteDataSource.getProfileFromBackend();
+        notifyListeners();
+        return true;
+      } catch (e) {
+        // Token might be valid but backend profile is missing or network error
+        return false;
+      }
+    }
+    return false;
+  }
+
   // Sign up using Email & Password + Save in MySQL backend
   Future<bool> registerWithEmail({
     required String email,
@@ -23,6 +38,8 @@ class AuthProvider extends ChangeNotifier {
     required String name,
     required String role,
     required String phone,
+    double? latitude,
+    double? longitude,
   }) async {
     _setLoading(true);
     _setError(null);
@@ -37,6 +54,8 @@ class AuthProvider extends ChangeNotifier {
           role: role,
           name: name,
           phone: phone,
+          latitude: latitude,
+          longitude: longitude,
         );
         notifyListeners();
         return true;
@@ -107,7 +126,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Register Google user profile on backend
-  Future<bool> registerGoogleUser({required String role, required String phone, String? name}) async {
+  Future<bool> registerGoogleUser({required String role, required String phone, String? name, double? latitude, double? longitude}) async {
     _setLoading(true);
     _setError(null);
     try {
@@ -116,6 +135,8 @@ class AuthProvider extends ChangeNotifier {
           role: role,
           name: name,
           phone: phone,
+          latitude: latitude,
+          longitude: longitude,
         );
         notifyListeners();
         return true;
@@ -129,7 +150,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateUserProfile({required String name, required String phone}) async {
+  Future<bool> updateUserProfile({required String name, required String phone, double? latitude, double? longitude}) async {
     _setLoading(true);
     _setError(null);
     try {
@@ -139,6 +160,8 @@ class AuthProvider extends ChangeNotifier {
           name: name,
           phone: phone,
           photoUrl: _currentUser!.fotoUrl,
+          latitude: latitude ?? _currentUser!.latitude,
+          longitude: longitude ?? _currentUser!.longitude,
         );
         notifyListeners();
         return true;

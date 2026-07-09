@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../providers/auth_provider.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
@@ -17,6 +18,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _latController = TextEditingController();
+  final _lngController = TextEditingController();
+  
+  bool _isGettingLocation = false;
   
   String _selectedRole = 'pelanggan'; // 'pelanggan' or 'pengelola_bengkel'
 
@@ -24,12 +29,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       final authProvider = context.read<AuthProvider>();
       
+      final double? parsedLat = double.tryParse(_latController.text.trim());
+      final double? parsedLng = double.tryParse(_lngController.text.trim());
+
       final success = await authProvider.registerWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         name: _nameController.text.trim(),
         role: _selectedRole,
         phone: _phoneController.text.trim(),
+        latitude: parsedLat,
+        longitude: parsedLng,
       );
 
       if (mounted) {
@@ -53,7 +63,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _latController.dispose();
+    _lngController.dispose();
     super.dispose();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isGettingLocation = true);
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('Layanan lokasi tidak aktif.');
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Izin lokasi ditolak.');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Izin lokasi ditolak permanen.');
+      }
+
+      final Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _latController.text = position.latitude.toString();
+        _lngController.text = position.longitude.toString();
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lokasi berhasil didapatkan!'), backgroundColor: Color(0xFF10B981)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGettingLocation = false);
+      }
+    }
   }
 
   @override
@@ -211,6 +268,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
+                if (_selectedRole == 'pengelola_bengkel') ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _latController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                          decoration: const InputDecoration(
+                            hintText: 'Latitude',
+                            prefixIcon: Icon(Icons.pin_drop_outlined, color: AppTheme.textSecondaryColor),
+                          ),
+                          validator: (value) => value != null && value.isNotEmpty && double.tryParse(value) == null ? 'Invalid' : null,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _lngController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                          decoration: const InputDecoration(
+                            hintText: 'Longitude',
+                            prefixIcon: Icon(Icons.pin_drop_outlined, color: AppTheme.textSecondaryColor),
+                          ),
+                          validator: (value) => value != null && value.isNotEmpty && double.tryParse(value) == null ? 'Invalid' : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isGettingLocation ? null : _getCurrentLocation,
+                      icon: const Icon(Icons.my_location_rounded, size: 18),
+                      label: Text(_isGettingLocation ? 'Mencari lokasi...' : 'Isi Lokasi Otomatis (GPS)'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryColor,
+                        side: const BorderSide(color: AppTheme.primaryColor),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
                 context.watch<AuthProvider>().isLoading
                     ? const Center(child: CircularProgressIndicator())

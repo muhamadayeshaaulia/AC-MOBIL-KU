@@ -22,54 +22,60 @@ class RecommendationsTab extends StatelessWidget {
     required this.onRefresh,
   });
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 11) return 'Selamat Pagi,';
+    if (hour < 15) return 'Selamat Siang,';
+    if (hour < 18) return 'Selamat Sore,';
+    return 'Selamat Malam,';
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.only(bottom: 20.0),
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User greeting and coordinates overview
+            // Custom Curved Header
             Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 20,
+                left: 24,
+                right: 24,
+                bottom: 32,
+              ),
+              decoration: const BoxDecoration(
                 color: AppTheme.cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.teal.withOpacity(0.2)),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                    child: const Icon(Icons.person, size: 36, color: AppTheme.primaryColor),
-                  ),
-                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          userNama,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          _getGreeting(),
+                          style: const TextStyle(fontSize: 14, color: AppTheme.textSecondaryColor),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Role: $userRole',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                          userNama,
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.gps_fixed, size: 12, color: AppTheme.primaryColor),
+                            const Icon(Icons.location_on, size: 14, color: AppTheme.primaryColor),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 userAddress,
-                                style: const TextStyle(fontSize: 11, color: AppTheme.primaryColor),
+                                style: const TextStyle(fontSize: 12, color: AppTheme.primaryColor),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -78,12 +84,20 @@ class RecommendationsTab extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 16),
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                    child: const Icon(Icons.person, size: 30, color: AppTheme.primaryColor),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             // Header for top CF recommendations
-            const Row(
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0),
+              child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
@@ -93,7 +107,8 @@ class RecommendationsTab extends StatelessWidget {
                 Icon(Icons.tune_rounded, size: 20, color: AppTheme.textSecondaryColor),
               ],
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
             isLoading
                 ? const Center(
@@ -113,15 +128,18 @@ class RecommendationsTab extends StatelessWidget {
                           ),
                         ),
                       )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: recommendedBengkels.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final bengkel = recommendedBengkels[index];
-                          return BengkelCardWithCatalog(bengkel: bengkel, index: index);
-                        },
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: recommendedBengkels.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            final bengkel = recommendedBengkels[index];
+                            return BengkelCardWithCatalog(bengkel: bengkel, index: index);
+                          },
+                        ),
                       ),
           ],
         ),

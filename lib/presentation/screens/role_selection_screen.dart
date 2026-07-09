@@ -33,9 +33,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   final _bengkelJamBukaController = TextEditingController(text: '08:00');
   final _bengkelJamTutupController = TextEditingController(text: '17:00');
   final _bengkelTeleponController = TextEditingController();
-
-  double _latitude = -6.2000;
-  double _longitude = 106.8166;
+  final _latController = TextEditingController();
+  final _lngController = TextEditingController();
   bool _gpsFetched = false;
 
   String _selectedRole = 'pelanggan'; // 'pelanggan' or 'pengelola_bengkel'
@@ -151,13 +150,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       );
 
       setState(() {
-        _latitude = position.latitude;
-        _longitude = position.longitude;
+        _latController.text = position.latitude.toString();
+        _lngController.text = position.longitude.toString();
         _gpsFetched = true;
       });
 
       // Reverse Geocoding to get Address
-      List<Placemark> placemarks = await placemarkFromCoordinates(_latitude, _longitude);
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
       if (placemarks.isNotEmpty) {
         final Placemark place = placemarks.first;
         final String? streetAddress = (place.street != null && !place.street!.contains('+')) ? place.street : null;
@@ -177,7 +176,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('GPS & Alamat berhasil dimuat: $_latitude, $_longitude'),
+            content: Text('GPS & Alamat berhasil dimuat: ${position.latitude}, ${position.longitude}'),
             backgroundColor: const Color(0xFF10B981),
           ),
         );
@@ -198,12 +197,18 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
       final authProvider = context.read<AuthProvider>();
+      
+      final double parsedLat = double.tryParse(_latController.text.trim()) ?? -6.2000;
+      final double parsedLng = double.tryParse(_lngController.text.trim()) ?? 106.8166;
+
       try {
         // 1. Sync User Profile to Backend Go (since Firebase account is already signed in via Google)
         final userSuccess = await authProvider.registerGoogleUser(
           role: _selectedRole,
           phone: _phoneController.text.trim(),
           name: widget.googleAccount.displayName,
+          latitude: parsedLat,
+          longitude: parsedLng,
         );
 
         if (!userSuccess) {
@@ -216,8 +221,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           final response = await apiClient.post('/bengkel', {
             'nama': _bengkelNamaController.text.trim(),
             'alamat': _bengkelAlamatController.text.trim(),
-            'latitude': _latitude,
-            'longitude': _longitude,
+            'latitude': parsedLat,
+            'longitude': parsedLng,
             'deskripsi': _bengkelDeskripsiController.text.trim(),
             'jam_buka': _bengkelJamBukaController.text.trim(),
             'jam_tutup': _bengkelJamTutupController.text.trim(),
@@ -264,6 +269,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     _bengkelJamBukaController.dispose();
     _bengkelJamTutupController.dispose();
     _bengkelTeleponController.dispose();
+    _latController.dispose();
+    _lngController.dispose();
     super.dispose();
   }
 
@@ -547,42 +554,45 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   ),
                   const SizedBox(height: 16),
                   // GPS coordinates fetcher simulation
-                  InkWell(
-                    onTap: _fetchGPSAndAddress,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _gpsFetched ? const Color(0xFF10B981).withOpacity(0.1) : AppTheme.cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: _gpsFetched ? const Color(0xFF10B981) : const Color(0xFF334155),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _latController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                          decoration: const InputDecoration(
+                            hintText: 'Latitude',
+                            prefixIcon: Icon(Icons.pin_drop_outlined, color: AppTheme.textSecondaryColor),
+                          ),
+                          validator: (value) => value != null && value.isNotEmpty && double.tryParse(value) == null ? 'Invalid' : null,
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _gpsFetched ? Icons.gps_fixed : Icons.gps_not_fixed,
-                            color: _gpsFetched ? const Color(0xFF10B981) : AppTheme.textSecondaryColor,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _lngController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                          decoration: const InputDecoration(
+                            hintText: 'Longitude',
+                            prefixIcon: Icon(Icons.pin_drop_outlined, color: AppTheme.textSecondaryColor),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _gpsFetched ? 'GPS Bengkel Terkunci' : 'Deteksi GPS Titik Bengkel',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
-                                Text(
-                                  'Koordinat: ($_latitude, $_longitude)',
-                                  style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (!_gpsFetched)
-                            const Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.textSecondaryColor),
-                        ],
+                          validator: (value) => value != null && value.isNotEmpty && double.tryParse(value) == null ? 'Invalid' : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _fetchGPSAndAddress,
+                      icon: const Icon(Icons.my_location_rounded, size: 18),
+                      label: Text(_gpsFetched ? 'Lokasi GPS Tersimpan' : 'Isi Lokasi Otomatis (GPS)'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _gpsFetched ? const Color(0xFF10B981) : AppTheme.primaryColor,
+                        side: BorderSide(color: _gpsFetched ? const Color(0xFF10B981) : AppTheme.primaryColor),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ),

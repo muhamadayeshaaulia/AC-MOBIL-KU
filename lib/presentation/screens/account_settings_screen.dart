@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -23,6 +24,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   // User profile inputs
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _latController;
+  late final TextEditingController _lngController;
   
   // Workshop details inputs (if partner)
   late final TextEditingController _bengkelNameController;
@@ -40,6 +43,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     final user = context.read<AuthProvider>().currentUser;
     _nameController = TextEditingController(text: user?.nama ?? '');
     _phoneController = TextEditingController(text: user?.telepon ?? '');
+    _latController = TextEditingController(text: (user?.latitude ?? 0.0).toString());
+    _lngController = TextEditingController(text: (user?.longitude ?? 0.0).toString());
 
     if (widget.myBengkelDetails != null) {
       _bengkelNameController = TextEditingController(text: widget.myBengkelDetails!['nama'] ?? '');
@@ -60,11 +65,61 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _latController.dispose();
+    _lngController.dispose();
     _bengkelNameController.dispose();
     _bengkelAddressController.dispose();
     _bengkelDescController.dispose();
     _bengkelPhoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('Layanan lokasi tidak aktif.');
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Izin lokasi ditolak.');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Izin lokasi ditolak permanen.');
+      }
+
+      final Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _latController.text = position.latitude.toString();
+        _lngController.text = position.longitude.toString();
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lokasi berhasil didapatkan!'), backgroundColor: Color(0xFF10B981)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   Future<void> _selectTime(BuildContext context, bool isOpenTime) async {
@@ -107,9 +162,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     try {
       // 1. Save personal profile
       final authProvider = context.read<AuthProvider>();
+      final double? parsedLat = double.tryParse(_latController.text.trim());
+      final double? parsedLng = double.tryParse(_lngController.text.trim());
+
       final userSuccess = await authProvider.updateUserProfile(
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
+        latitude: parsedLat,
+        longitude: parsedLng,
       );
 
       if (!userSuccess) {
@@ -200,6 +260,55 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 ),
                 validator: (value) =>
                     value == null || value.trim().isEmpty ? 'Nomor telepon tidak boleh kosong' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Latitude and Longitude Row
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _latController,
+                      style: const TextStyle(color: Colors.white),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Latitude',
+                        labelStyle: TextStyle(color: AppTheme.textSecondaryColor),
+                        prefixIcon: Icon(Icons.pin_drop_outlined, color: AppTheme.primaryColor),
+                      ),
+                      validator: (value) => value != null && double.tryParse(value) == null ? 'Invalid' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _lngController,
+                      style: const TextStyle(color: Colors.white),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Longitude',
+                        labelStyle: TextStyle(color: AppTheme.textSecondaryColor),
+                        prefixIcon: Icon(Icons.pin_drop_outlined, color: AppTheme.primaryColor),
+                      ),
+                      validator: (value) => value != null && double.tryParse(value) == null ? 'Invalid' : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isSubmitting ? null : _getCurrentLocation,
+                  icon: const Icon(Icons.my_location_rounded, size: 18),
+                  label: const Text('Isi Lokasi Otomatis (GPS)'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primaryColor,
+                    side: const BorderSide(color: AppTheme.primaryColor),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ),
               
               if (isPengelola) ...[
