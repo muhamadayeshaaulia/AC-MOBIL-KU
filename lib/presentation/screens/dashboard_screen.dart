@@ -16,6 +16,7 @@ import 'dashboard_tabs/manager_dashboard_tab.dart';
 import 'dashboard_tabs/manager_info_tab.dart';
 import 'manage_catalog_screen.dart';
 import 'manage_bookings_screen.dart';
+import 'workshop_reviews_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -347,7 +348,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   isBengkelLoading: _isBengkelLoading,
                   servicesList: _myServices,
                   bookingHistory: _bookingHistory,
-                  onAddLayanan: _addLayanan,
+                  onViewReviews: () {
+                    final int bengkelId = _myBengkelDetails?['id'] as int? ?? 1;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WorkshopReviewsScreen(bengkelId: bengkelId),
+                      ),
+                    );
+                  },
                   onViewCatalog: () {
                     Navigator.push(
                       context,

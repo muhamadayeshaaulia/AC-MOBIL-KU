@@ -9,9 +9,9 @@ class ManagerDashboardTab extends StatelessWidget {
   final bool isBengkelLoading;
   final List<dynamic> servicesList;
   final List<dynamic> bookingHistory;
-  final Future<void> Function(String nama, String deskripsi, double harga, String fotoUrl) onAddLayanan;
   final VoidCallback onViewCatalog;
   final VoidCallback onViewBookings;
+  final VoidCallback onViewReviews;
   final VoidCallback onViewProfile;
 
   const ManagerDashboardTab({
@@ -22,9 +22,9 @@ class ManagerDashboardTab extends StatelessWidget {
     required this.isBengkelLoading,
     required this.servicesList,
     required this.bookingHistory,
-    required this.onAddLayanan,
     required this.onViewCatalog,
     required this.onViewBookings,
+    required this.onViewReviews,
     required this.onViewProfile,
   });
 
@@ -297,18 +297,11 @@ class ManagerDashboardTab extends StatelessWidget {
                       ),
                       _buildMenuCard(
                         context,
-                        Icons.add_circle_outline_rounded,
-                        'Tambah Jasa',
-                        'Buat layanan baru',
+                        Icons.star_rounded,
+                        'Rating & Ulasan',
+                        'Ulasan & tingkat kepuasan',
                         const Color(0xFFF59E0B),
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AddServiceScreen(onAddLayanan: onAddLayanan),
-                            ),
-                          );
-                        },
+                        onViewReviews,
                       ),
                       _buildMenuCard(
                         context,
