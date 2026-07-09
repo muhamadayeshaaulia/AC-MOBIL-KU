@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
 import '../providers/auth_provider.dart';
+import 'payment_success_screen.dart';
 
 class BookingScreen extends StatefulWidget {
   final Map<String, dynamic> bengkel;
@@ -118,13 +119,21 @@ class _BookingScreenState extends State<BookingScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Reservasi berhasil dibuat! Tunggu konfirmasi dari bengkel.'),
-              backgroundColor: Color(0xFF10B981),
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PaymentSuccessScreen(
+                bengkelNama: widget.bengkel['nama'] ?? '-',
+                layananNama: widget.selectedLayanan['nama'] ?? '-',
+                jadwal: formattedDate,
+                metode: _selectedPaymentMethod,
+                nominalDp: dp.toDouble(),
+              ),
             ),
+            (route) => route.isFirst, // Remove all routes EXCEPT dashboard (isFirst)
+            // Wait, pushAndRemoveUntil with isFirst will remove the current screen and push PaymentSuccessScreen ON TOP of the first route.
+            // Oh actually, it pops everything above the first route and then pushes PaymentSuccessScreen.
           );
-          Navigator.popUntil(context, (route) => route.isFirst);
         }
       } else {
         final decoded = jsonDecode(response.body);

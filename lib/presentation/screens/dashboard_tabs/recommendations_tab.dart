@@ -106,7 +106,7 @@ class RecommendationsTab extends StatelessWidget {
                 children: [
                   const Expanded(
                     child: Text(
-                      'Top-N Rekomendasi Terdekat',
+                      'Rekomendasi Untuk Anda',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                       overflow: TextOverflow.ellipsis,
                     ),
