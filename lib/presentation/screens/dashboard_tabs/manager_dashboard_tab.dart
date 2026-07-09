@@ -4,6 +4,7 @@ import '../add_service_screen.dart';
 
 class ManagerDashboardTab extends StatelessWidget {
   final String nama;
+  final String userFotoUrl;
   final Map<String, dynamic>? myBengkelDetails;
   final bool isBengkelLoading;
   final List<dynamic> servicesList;
@@ -16,6 +17,7 @@ class ManagerDashboardTab extends StatelessWidget {
   const ManagerDashboardTab({
     super.key,
     required this.nama,
+    required this.userFotoUrl,
     required this.myBengkelDetails,
     required this.isBengkelLoading,
     required this.servicesList,
@@ -41,7 +43,7 @@ class ManagerDashboardTab extends StatelessWidget {
 
   bool _isBengkelOpen(String? openStr, String? closeStr) {
     if (openStr == null || closeStr == null || openStr.isEmpty || closeStr.isEmpty) {
-      return false; // Default to closed if hours aren\'t set
+      return false; // Default to closed if hours aren't set
     }
     try {
       final now = DateTime.now();
@@ -74,247 +76,256 @@ class ManagerDashboardTab extends StatelessWidget {
     final String statusBengkel = isOpen ? 'Buka' : 'Tutup';
     final Color statusColor = isOpen ? const Color(0xFF10B981) : Colors.redAccent;
 
-    final String fotoUrl = (myBengkelDetails?['foto_url'] != null && myBengkelDetails!['foto_url'].toString().isNotEmpty)
-        ? myBengkelDetails!['foto_url']
-        : 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=600';
+    // Use User Profile photo instead of Workshop photo for the user greeting avatar
+    final String userAvatarUrl = userFotoUrl.isNotEmpty
+        ? userFotoUrl
+        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200';
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Premium Curved Header with Dynamic Greeting
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(32),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. FIXED Curved Header (Will not scroll, stays locked at the top!)
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(32),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.fromLTRB(24, statusBarHeight + 16, 24, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome Greeting Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _getGreeting(),
+                          style: const TextStyle(
+                            color: AppTheme.textSecondaryColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          nama,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Role Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.25)),
+                          ),
+                          child: const Text(
+                            'Pengelola Bengkel',
+                            style: TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Circular User Profile Avatar (Greeting Photo)
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: CircleAvatar(
+                      radius: 32,
+                      backgroundImage: NetworkImage(userAvatarUrl),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white10, height: 1),
+              const SizedBox(height: 20),
+
+              // Workshop detail summary inside header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Nama Bengkel:',
+                          style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          bengkelName,
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Jam Operasional: ${myBengkelDetails?['jam_buka'] ?? '-'} - ${myBengkelDetails?['jam_tutup'] ?? '-'}',
+                          style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: statusColor.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Status: $statusBengkel',
+                          style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Circular stats indicators row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildCircularStat(context, servicesCount.toString(), 'Layanan Jasa', AppTheme.primaryColor),
+                  _buildCircularStat(context, bookingsCount.toString(), 'Reservasi Masuk', const Color(0xFF3B82F6)),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // 2. SCROLLABLE Content (Only menus and list will scroll below the header!)
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(top: 24, bottom: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Welcome Greeting Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _getGreeting(),
-                            style: const TextStyle(
-                              color: AppTheme.textSecondaryColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            nama,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          // Role Badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.25)),
-                            ),
-                            child: const Text(
-                              'Pengelola Bengkel',
-                              style: TextStyle(
-                                color: AppTheme.primaryColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                // Menu Section Header
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Text(
+                    'Menu Kelola Pengelola',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                    // Circular Workshop Logo
-                    Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: CircleAvatar(
-                        radius: 32,
-                        backgroundImage: NetworkImage(fotoUrl),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                
-                const SizedBox(height: 24),
-                const Divider(color: Colors.white10, height: 1),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // Workshop detail summary inside header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Nama Bengkel:',
-                            style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            bengkelName,
-                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Jam Operasional: ${myBengkelDetails?['jam_buka'] ?? '-'} - ${myBengkelDetails?['jam_tutup'] ?? '-'}',
-                            style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 10),
-                          ),
-                        ],
+                // 2x2 Grid Menu for Pengelola
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.15,
+                    children: [
+                      _buildMenuCard(
+                        context,
+                        Icons.construction_rounded,
+                        'Katalog Jasa',
+                        'Kelola daftar harga & jasa',
+                        const Color(0xFF10B981),
+                        onViewCatalog,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: statusColor.withOpacity(0.2)),
+                      _buildMenuCard(
+                        context,
+                        Icons.history_edu_rounded,
+                        'Booking Masuk',
+                        'Lihat daftar reservasi',
+                        const Color(0xFF3B82F6),
+                        onViewBookings,
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              shape: BoxShape.circle,
+                      _buildMenuCard(
+                        context,
+                        Icons.add_circle_outline_rounded,
+                        'Tambah Jasa',
+                        'Buat layanan baru',
+                        const Color(0xFFF59E0B),
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddServiceScreen(onAddLayanan: onAddLayanan),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Status: $statusBengkel',
-                            style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Circular stats indicators row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildCircularStat(context, servicesCount.toString(), 'Layanan Jasa', AppTheme.primaryColor),
-                    _buildCircularStat(context, bookingsCount.toString(), 'Reservasi Masuk', const Color(0xFF3B82F6)),
-                  ],
+                      _buildMenuCard(
+                        context,
+                        Icons.storefront_outlined,
+                        'Profil Bengkel',
+                        'Detail & Jam Operasional',
+                        const Color(0xFFEC4899),
+                        onViewProfile,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          
-          const SizedBox(height: 28),
-
-          // 2. Menu Section Header
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.0),
-            child: Text(
-              'Menu Kelola Pengelola',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 3. 2x2 Grid Menu for Pengelola
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.15,
-              children: [
-                _buildMenuCard(
-                  context,
-                  Icons.construction_rounded,
-                  'Katalog Jasa',
-                  'Kelola daftar harga & jasa',
-                  const Color(0xFF10B981),
-                  onViewCatalog,
-                ),
-                _buildMenuCard(
-                  context,
-                  Icons.history_edu_rounded,
-                  'Booking Masuk',
-                  'Lihat daftar reservasi',
-                  const Color(0xFF3B82F6),
-                  onViewBookings,
-                ),
-                _buildMenuCard(
-                  context,
-                  Icons.add_circle_outline_rounded,
-                  'Tambah Jasa',
-                  'Buat layanan baru',
-                  const Color(0xFFF59E0B),
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddServiceScreen(onAddLayanan: onAddLayanan),
-                      ),
-                    );
-                  },
-                ),
-                _buildMenuCard(
-                  context,
-                  Icons.storefront_outlined,
-                  'Profil Bengkel',
-                  'Detail & Jam Operasional',
-                  const Color(0xFFEC4899),
-                  onViewProfile,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

@@ -14,6 +14,8 @@ import 'dashboard_tabs/notifications_tab.dart';
 import 'dashboard_tabs/profile_tab.dart';
 import 'dashboard_tabs/manager_dashboard_tab.dart';
 import 'dashboard_tabs/manager_info_tab.dart';
+import 'manage_catalog_screen.dart';
+import 'manage_bookings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -329,25 +331,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text(_getAppBarTitle()),
-      ),
+      appBar: (userRole == 'Pengelola Bengkel' && _currentIndex == 0)
+          ? null
+          : AppBar(
+              title: Text(_getAppBarTitle()),
+            ),
       body: IndexedStack(
         index: _currentIndex,
         children: [
           userRole == 'Pengelola Bengkel'
               ? ManagerDashboardTab(
                   nama: userNama,
+                  userFotoUrl: user?.fotoUrl ?? '',
                   myBengkelDetails: _myBengkelDetails,
                   isBengkelLoading: _isBengkelLoading,
                   servicesList: _myServices,
                   bookingHistory: _bookingHistory,
                   onAddLayanan: _addLayanan,
                   onViewCatalog: () {
-                    setState(() => _currentIndex = 3);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ManageCatalogScreen(
+                          servicesList: _myServices,
+                          isServicesLoading: _isServicesLoading,
+                          onAddLayanan: _addLayanan,
+                          onDeleteLayanan: _deleteLayanan,
+                          onUpdateLayanan: _updateLayanan,
+                        ),
+                      ),
+                    );
                   },
                   onViewBookings: () {
-                    setState(() => _currentIndex = 1);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ManageBookingsScreen(),
+                      ),
+                    );
                   },
                   onViewProfile: () {
                     setState(() => _currentIndex = 3);

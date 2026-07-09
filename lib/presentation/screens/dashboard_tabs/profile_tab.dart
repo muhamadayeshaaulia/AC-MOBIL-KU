@@ -392,192 +392,181 @@ class ProfileTab extends StatelessWidget {
                         ],
                       ),
             
-            const Divider(color: Color(0xFF334155), height: 40),
-            
-            // Layout catalog services management section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Katalog Layanan & Jasa',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddServiceScreen(
-                          onAddLayanan: onAddLayanan,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('TAMBAH'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryColor,
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            if (role != 'Pengelola Bengkel') ...[
+              const Divider(color: Color(0xFF334155), height: 40),
+              
+              // Layout catalog services management section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Katalog Layanan & Jasa',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            isServicesLoading
-                ? const Center(child: CircularProgressIndicator())
-                : servicesList.isEmpty
-                    ? Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: AppTheme.cardColor,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Belum ada jasa/layanan terdaftar.',
-                            style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddServiceScreen(
+                            onAddLayanan: onAddLayanan,
                           ),
                         ),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: servicesList.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final item = servicesList[index];
-                          final int id = item['id'] as int;
-                          final double price = (item['estimasi_harga'] as num?)?.toDouble() ?? 0.0;
-                          
-                          // Parse comma separated photo URLs
-                          final String rawPhotoUrl = item['foto_url'] ?? '';
-                          final List<String> serviceImages = rawPhotoUrl.isNotEmpty ? rawPhotoUrl.split(',') : [];
-                          
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.cardColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15)),
+                      );
+                    },
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('TAMBAH'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              isServicesLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : servicesList.isEmpty
+                      ? Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Belum ada jasa/layanan terdaftar.',
+                              style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryColor.withOpacity(0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.construction_rounded, color: AppTheme.primaryColor, size: 20),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            item['nama'] ?? 'Service AC',
-                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            item['deskripsi'] ?? '',
-                                            style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            'Estimasi: Rp ${_formatRupiah(price)}',
-                                            style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    
-                                    // EDIT SERVICE BUTTON
-                                    IconButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => EditServiceScreen(
-                                              service: item,
-                                              onUpdateLayanan: onUpdateLayanan,
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: servicesList.length,
+                          itemBuilder: (context, index) {
+                            final item = servicesList[index];
+                            final price = (item['estimasi_harga'] as num?)?.toDouble() ?? 0.0;
+                            
+                            final String rawPhotoUrl = item['foto_url'] ?? '';
+                            final List<String> serviceImages = rawPhotoUrl.isNotEmpty ? rawPhotoUrl.split(',') : [];
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item['nama'] ?? 'Service AC',
+                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                                             ),
-                                          ),
-                                        );
-                                      },
-                                      icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryColor),
-                                    ),
-                                    
-                                    // DELETE SERVICE BUTTON
-                                    IconButton(
-                                      onPressed: () async {
-                                        final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (ctx) => AlertDialog(
-                                            backgroundColor: const Color(0xFF1E293B),
-                                            title: const Text('Hapus Layanan', style: TextStyle(color: Colors.white)),
-                                            content: const Text('Apakah Anda yakin ingin menghapus layanan ini?', style: TextStyle(color: AppTheme.textSecondaryColor)),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(ctx, false),
-                                                child: const Text('BATAL', style: TextStyle(color: Colors.white)),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              item['deskripsi'] ?? '',
+                                              style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              'Estimasi: Rp ${_formatRupiah(price)}',
+                                              style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      
+                                      // EDIT SERVICE BUTTON
+                                      IconButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => EditServiceScreen(
+                                                service: item,
+                                                onUpdateLayanan: onUpdateLayanan,
                                               ),
-                                              ElevatedButton(
-                                                onPressed: () => Navigator.pop(ctx, true),
-                                                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                                                child: const Text('HAPUS'),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryColor),
+                                      ),
+                                      
+                                      // DELETE SERVICE BUTTON
+                                      IconButton(
+                                        onPressed: () async {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                              backgroundColor: AppTheme.cardColor,
+                                              title: const Text('Hapus Jasa?', style: TextStyle(color: Colors.white)),
+                                              content: const Text(
+                                                'Apakah Anda yakin ingin menghapus jasa ini dari katalog?',
+                                                style: TextStyle(color: AppTheme.textSecondaryColor),
                                               ),
-                                            ],
-                                          ),
-                                        );
-                                        if (confirm == true) {
-                                          await onDeleteLayanan(id);
-                                        }
-                                      },
-                                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(ctx, false),
+                                                  child: const Text('Batal'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.pop(ctx, true),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                                                  child: const Text('Hapus'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            await onDeleteLayanan(item['id'] as int);
+                                          }
+                                        },
+                                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  // Images horizontal list row
+                                  if (serviceImages.isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      height: 80,
+                                      child: ListView.separated(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: serviceImages.length,
+                                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                        itemBuilder: (ctx, imgIdx) {
+                                          return ClipRRect(
+                                            borderRadius: BorderRadius.circular(10),
+                                            child: Image.network(
+                                              serviceImages[imgIdx],
+                                              width: 120,
+                                              height: 80,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ],
-                                ),
-                                
-                                // Dynamic multiple photo slider for service card
-                                if (serviceImages.isNotEmpty) ...[
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'Foto Dokumentasi Jasa:',
-                                    style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    height: 80,
-                                    child: ListView.separated(
-                                      scrollDirection: Axis.horizontal,
-                                      itemCount: serviceImages.length,
-                                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                                      itemBuilder: (ctx, imgIdx) {
-                                        return ClipRRect(
-                                          borderRadius: BorderRadius.circular(10),
-                                          child: Image.network(
-                                            serviceImages[imgIdx],
-                                            width: 120,
-                                            height: 80,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
                                 ],
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                              ),
+                            );
+                          },
+                        ),
+            ],
           ],
 
           const SizedBox(height: 40),
