@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/network/api_client.dart';
 import '../add_service_screen.dart';
@@ -310,6 +311,50 @@ class ProfileTab extends StatelessWidget {
                           ),
                           _buildProfileItem(Icons.storefront_outlined, 'Nama Bengkel', myBengkelDetails!['nama'] ?? '-'),
                           _buildProfileItem(Icons.location_on_outlined, 'Alamat Bengkel', myBengkelDetails!['alamat'] ?? '-'),
+                          // Tombol dapatkan arah ke bengkel via Google Maps
+                          Builder(builder: (context) {
+                            final double? lat = (myBengkelDetails!['latitude'] as num?)?.toDouble();
+                            final double? lng = (myBengkelDetails!['longitude'] as num?)?.toDouble();
+                            if (lat == null || lng == null || (lat == 0.0 && lng == 0.0)) {
+                              return const SizedBox.shrink();
+                            }
+                            return GestureDetector(
+                              onTap: () async {
+                                final String bengkelNama = Uri.encodeComponent(myBengkelDetails!['nama'] ?? 'Bengkel');
+                                // Gunakan Google Maps intent URL, fallback ke browser jika app tidak ada
+                                final Uri mapsUri = Uri.parse(
+                                  'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&destination_place_id=$bengkelNama&travelmode=driving',
+                                );
+                                if (await canLaunchUrl(mapsUri)) {
+                                  await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1A3A2A),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                                ),
+                                child: Row(children: [
+                                  const Icon(Icons.directions_rounded, color: Color(0xFF10B981), size: 22),
+                                  const SizedBox(width: 16),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Dapatkan Arah', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                        SizedBox(height: 2),
+                                        Text('Buka Google Maps untuk navigasi ke bengkel', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11)),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.open_in_new_rounded, color: Color(0xFF10B981), size: 18),
+                                ]),
+                              ),
+                            );
+                          }),
                           _buildProfileItem(Icons.access_time_rounded, 'Jam Kerja', '${myBengkelDetails!['jam_buka'] ?? '-'} - ${myBengkelDetails!['jam_tutup'] ?? '-'}'),
                           if (myBengkelDetails!['deskripsi'] != null && myBengkelDetails!['deskripsi'].toString().isNotEmpty)
                             _buildProfileItem(Icons.info_outline_rounded, 'Deskripsi', myBengkelDetails!['deskripsi']),
