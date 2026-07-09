@@ -45,7 +45,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleGoogleSignIn() async {
     final authProvider = context.read<AuthProvider>();
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      // Selalu sign out dulu agar dialog pemilih akun Google selalu muncul,
+      // sehingga pengguna bisa memilih akun yang berbeda
+      await googleSignIn.signOut();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         return; // User cancelled the selection, nothing is saved
       }
