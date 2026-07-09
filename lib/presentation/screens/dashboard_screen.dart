@@ -228,6 +228,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _updateWorkshopDetails(String nama, String alamat, String deskripsi, String jamBuka, String jamTutup, String telepon) async {
+    if (_myBengkelDetails == null) return;
+    try {
+      final response = await _apiClient.put('/bengkel', {
+        'nama': nama,
+        'alamat': alamat,
+        'latitude': _myBengkelDetails!['latitude'],
+        'longitude': _myBengkelDetails!['longitude'],
+        'deskripsi': deskripsi,
+        'jam_buka': jamBuka,
+        'jam_tutup': jamTutup,
+        'telepon': telepon,
+        'status': _myBengkelDetails!['status'],
+        'foto_url': _myBengkelDetails!['foto_url'],
+      });
+      if (response.statusCode == 200) {
+        _loadMyBengkelDetails();
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      debugPrint('Failed to update workshop details: $e');
+    }
+  }
+
   Future<void> _updateUserPhoto(String url) async {
     try {
       final success = await context.read<AuthProvider>().updateUserPhoto(url);
@@ -379,9 +404,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     );
                   },
-                  onViewProfile: () {
-                    setState(() => _currentIndex = 3);
-                  },
                 )
               : RecommendationsTab(
                   userNama: userNama,
@@ -414,6 +436,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onUpdateLayanan: _updateLayanan,
             onUpdateWorkshopPhoto: _updateWorkshopPhoto,
             onUpdateUserPhoto: _updateUserPhoto,
+            onUpdateWorkshopDetails: _updateWorkshopDetails,
             onLogout: _handleLogout,
           ),
         ],

@@ -129,6 +129,29 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateUserProfile({required String name, required String phone}) async {
+    _setLoading(true);
+    _setError(null);
+    try {
+      if (_currentUser != null) {
+        _currentUser = await _authRemoteDataSource.syncProfileToBackend(
+          role: _currentUser!.role,
+          name: name,
+          phone: phone,
+          photoUrl: _currentUser!.fotoUrl,
+        );
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> updateUserPhoto(String url) async {
     _setLoading(true);
     _setError(null);

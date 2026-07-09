@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../add_service_screen.dart';
 
 class ManagerDashboardTab extends StatelessWidget {
   final String nama;
@@ -12,10 +11,9 @@ class ManagerDashboardTab extends StatelessWidget {
   final VoidCallback onViewCatalog;
   final VoidCallback onViewBookings;
   final VoidCallback onViewReviews;
-  final VoidCallback onViewProfile;
 
   const ManagerDashboardTab({
-    super.key,
+    key,
     required this.nama,
     required this.userFotoUrl,
     required this.myBengkelDetails,
@@ -25,8 +23,7 @@ class ManagerDashboardTab extends StatelessWidget {
     required this.onViewCatalog,
     required this.onViewBookings,
     required this.onViewReviews,
-    required this.onViewProfile,
-  });
+  }) : super(key: key);
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -250,69 +247,45 @@ class ManagerDashboardTab extends StatelessWidget {
         Expanded(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(top: 24, bottom: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Menu Section Header
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Text(
-                    'Menu Kelola Pengelola',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                const Text(
+                  'Menu Kelola Pengelola',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // 2x2 Grid Menu for Pengelola
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.15,
-                    children: [
-                      _buildMenuCard(
-                        context,
-                        Icons.construction_rounded,
-                        'Katalog Jasa',
-                        'Kelola daftar harga & jasa',
-                        const Color(0xFF10B981),
-                        onViewCatalog,
-                      ),
-                      _buildMenuCard(
-                        context,
-                        Icons.history_edu_rounded,
-                        'Booking Masuk',
-                        'Lihat daftar reservasi',
-                        const Color(0xFF3B82F6),
-                        onViewBookings,
-                      ),
-                      _buildMenuCard(
-                        context,
-                        Icons.star_rounded,
-                        'Rating & Ulasan',
-                        'Ulasan & tingkat kepuasan',
-                        const Color(0xFFF59E0B),
-                        onViewReviews,
-                      ),
-                      _buildMenuCard(
-                        context,
-                        Icons.storefront_outlined,
-                        'Profil Bengkel',
-                        'Detail & Jam Operasional',
-                        const Color(0xFFEC4899),
-                        onViewProfile,
-                      ),
-                    ],
-                  ),
+                // Vertical list of clean premium menu items
+                _buildMenuCard(
+                  context,
+                  Icons.construction_rounded,
+                  'Katalog Jasa',
+                  'Kelola daftar harga & jasa layanan AC',
+                  const Color(0xFF10B981),
+                  onViewCatalog,
+                ),
+                _buildMenuCard(
+                  context,
+                  Icons.history_edu_rounded,
+                  'Booking Masuk',
+                  'Pantau dan terima reservasi masuk',
+                  const Color(0xFF3B82F6),
+                  onViewBookings,
+                ),
+                _buildMenuCard(
+                  context,
+                  Icons.star_rounded,
+                  'Rating & Ulasan',
+                  'Tingkat kepuasan dan ulasan pembeli',
+                  const Color(0xFFF59E0B),
+                  onViewReviews,
                 ),
               ],
             ),
@@ -367,7 +340,8 @@ class ManagerDashboardTab extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: AppTheme.cardColor,
           borderRadius: BorderRadius.circular(20),
@@ -380,41 +354,41 @@ class ManagerDashboardTab extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: accentColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: accentColor, size: 24),
+              child: Icon(icon, color: accentColor, size: 26),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppTheme.textSecondaryColor,
-                    fontSize: 9,
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: AppTheme.textSecondaryColor,
+                      fontSize: 11,
+                    ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
+            Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.3), size: 24),
           ],
         ),
       ),
