@@ -65,7 +65,11 @@ class ManagerDashboardTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int servicesCount = servicesList.length;
-    final int bookingsCount = bookingHistory.length;
+    // Hanya hitung reservasi yang statusnya bukan menunggu, batal, atau ditolak
+    final int bookingsCount = bookingHistory.where((b) {
+      final status = (b['status'] ?? '').toString().toLowerCase();
+      return status != 'menunggu' && status != 'batal' && status != 'ditolak';
+    }).length;
     final String bengkelName = myBengkelDetails?['nama'] ?? 'Bengkel AC Anda';
     
     // Automatically determine Open/Closed status based on operational hours

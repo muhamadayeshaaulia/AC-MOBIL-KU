@@ -148,6 +148,16 @@ class BookingsTab extends StatelessWidget {
     final screenshotController = ScreenshotController();
     bool isCapturing = false;
 
+    String formatTanggal(dynamic tgl) {
+      if (tgl == null) return '-';
+      try {
+        final dt = DateTime.parse(tgl.toString()).toLocal();
+        return "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+      } catch (_) {
+        return tgl.toString().substring(0, 16).replaceFirst('T', ' ');
+      }
+    }
+
     showDialog(
       context: context,
       builder: (ctx) {
@@ -160,26 +170,51 @@ class BookingsTab extends StatelessWidget {
               content: Screenshot(
                 controller: screenshotController,
                 child: Container(
-                  color: AppTheme.cardColor, // Ensure background is captured
-                  padding: const EdgeInsets.all(8.0),
+                  width: double.maxFinite,
+                  color: Colors.white, // Kertas putih
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      const Icon(Icons.directions_car_filled_outlined, color: Colors.black87, size: 40),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'AC MOBILKU',
+                        style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2),
+                      ),
+                      const Text(
+                        'BUKTI PEMBAYARAN DP',
+                        style: TextStyle(color: Colors.black54, fontSize: 11),
+                      ),
+                      const SizedBox(height: 20),
+                      Container(height: 1, color: Colors.black26, width: double.infinity),
+                      const SizedBox(height: 16),
                       _buildStrukRow('ID Reservasi', '#${booking['id']}'),
                       _buildStrukRow('Bengkel', booking['bengkel']?['nama'] ?? '-'),
                       _buildStrukRow('Layanan', booking['layanan']?['nama'] ?? '-'),
-                      _buildStrukRow('Jadwal', booking['tanggal_booking'] != null ? booking['tanggal_booking'].toString().substring(0, 16).replaceFirst('T', ' ') : '-'),
-                      const Divider(color: Colors.white24, height: 24),
+                      _buildStrukRow('Jadwal', formatTanggal(booking['tanggal_booking'])),
                       _buildStrukRow('Metode', booking['metode_pembayaran'] ?? '-'),
-                      _buildStrukRow('Total DP', 'Rp ${booking['nominal_dp'] ?? 0}', isBold: true, isPrice: true),
-                      const SizedBox(height: 16),
-                      const Center(
-                        child: Text(
-                          'Silakan tunjukkan struk ini saat datang ke bengkel.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
-                        ),
+                      const SizedBox(height: 8),
+                      Container(height: 1, color: Colors.black26, width: double.infinity),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('TOTAL DP', style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold)),
+                          Text('Rp ${booking['nominal_dp'] ?? 0}', style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        '-- TERIMA KASIH --',
+                        style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Tunjukkan struk ini saat datang ke bengkel',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.black38, fontSize: 10),
                       ),
                     ],
                   ),
@@ -231,23 +266,23 @@ class BookingsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildStrukRow(String label, String value, {bool isBold = false, bool isPrice = false}) {
+  Widget _buildStrukRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          Text(label, style: const TextStyle(color: Colors.black54, fontSize: 12)),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: TextStyle(
-                color: isPrice ? const Color(0xFFF59E0B) : Colors.white,
-                fontSize: 13,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

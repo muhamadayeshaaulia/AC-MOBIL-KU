@@ -387,12 +387,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     List<dynamic> filtered = _allRecommendedBengkels.where((b) {
       final double distance = (b['distance'] as num?)?.toDouble() ?? 0.0;
       final double minHarga = (b['min_harga'] as num?)?.toDouble() ?? 0.0;
-      
       bool passDistance = distance <= _filterMaxDistance;
       bool passHarga = _filterMaxHarga == null || minHarga <= _filterMaxHarga!;
-      
-      // If a bengkel has 0 minHarga, it might mean they have no layanans. 
-      // We still include it unless they specifically filter for a strict price and we want to be strict.
+
       return passDistance && passHarga;
     }).toList();
 
@@ -554,9 +551,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   }
 
   Future<void> _loadBookingHistory() async {
+    final role = context.read<AuthProvider>().currentUser?.role;
     try {
       setState(() => _isBookingsLoading = true);
-      final response = await _apiClient.get('/booking/history');
+      String endpoint = role == 'pengelola_bengkel' ? '/booking/queue' : '/booking/history';
+      final response = await _apiClient.get(endpoint);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         setState(() {
@@ -645,7 +644,12 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                           onUpdateLayanan: _updateLayanan,
                         ),
                       ),
-                    );
+                    ).then((_) {
+                      final authProvider = context.read<AuthProvider>();
+                      if (authProvider.currentUser?.role == 'pengelola_bengkel') {
+                        _loadMyBengkelDetails();
+                      }
+                    });
                   },
                   onViewBookings: () {
                     Navigator.push(
@@ -653,7 +657,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       MaterialPageRoute(
                         builder: (context) => const ManageBookingsScreen(),
                       ),
-                    );
+                    ).then((_) {
+                      _loadBookingHistory();
+                    });
                   },
                 )
               : RecommendationsTab(
@@ -704,13 +710,20 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           setState(() {
             _currentIndex = index;
           });
+          final role = context.read<AuthProvider>().currentUser?.role;
+          final isManager = role == 'pengelola_bengkel';
+
           if (index == 1) {
             _loadBookingHistory();
           } else if (index == 0) {
-            _loadRecommendations();
+            if (isManager) {
+              _loadMyBengkelDetails();
+              _loadBookingHistory();
+            } else {
+              _loadRecommendations();
+            }
           } else if (index == 3) {
-            final authProvider = context.read<AuthProvider>();
-            if (authProvider.currentUser?.role == 'pengelola_bengkel') {
+            if (isManager) {
               _loadMyBengkelDetails();
             }
           }
