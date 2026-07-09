@@ -12,6 +12,7 @@ class ProfileTab extends StatelessWidget {
   final String phone;
   final String userAddress;
   final String fotoUrl;
+  final String createdAt;
   final Map<String, dynamic>? myBengkelDetails;
   final bool isBengkelLoading;
   final List<dynamic> servicesList;
@@ -32,6 +33,7 @@ class ProfileTab extends StatelessWidget {
     required this.phone,
     required this.userAddress,
     required this.fotoUrl,
+    required this.createdAt,
     required this.myBengkelDetails,
     required this.isBengkelLoading,
     required this.servicesList,
@@ -118,6 +120,17 @@ class ProfileTab extends StatelessWidget {
     return str.replaceAllMapped(reg, (Match match) => '${match[1]}.');
   }
 
+  String _formatJoinDate(String isoStr) {
+    if (isoStr.isEmpty) return 'Baru saja';
+    try {
+      final dt = DateTime.parse(isoStr).toLocal();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (e) {
+      return isoStr.split('T').first;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String displayAvatar = fotoUrl.isNotEmpty 
@@ -184,6 +197,11 @@ class ProfileTab extends StatelessWidget {
                       Text(
                         role,
                         style: const TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Bergabung sejak: ${_formatJoinDate(createdAt)}',
+                        style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 10),
                       ),
                     ],
                   ),

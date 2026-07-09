@@ -623,6 +623,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final String userEmail = user?.email ?? 'dimas@example.com';
     final String userRole = user?.role == 'pengelola_bengkel' ? 'Pengelola Bengkel' : 'Pelanggan';
     final String userPhone = user?.telepon ?? '0812-3456-7890';
+    final String userCreatedAt = user?.createdAt ?? '';
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -709,6 +710,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             phone: userPhone,
             userAddress: _userAddress,
             fotoUrl: user?.fotoUrl ?? '',
+            createdAt: userCreatedAt,
             myBengkelDetails: _myBengkelDetails,
             isBengkelLoading: _isBengkelLoading,
             servicesList: _myServices,

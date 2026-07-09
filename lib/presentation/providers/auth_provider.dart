@@ -255,6 +255,7 @@ class AuthProvider extends ChangeNotifier {
         longitude: lng,
         telepon: _currentUser!.telepon,
         fotoUrl: _currentUser!.fotoUrl,
+        createdAt: _currentUser!.createdAt,
       );
       notifyListeners();
     }

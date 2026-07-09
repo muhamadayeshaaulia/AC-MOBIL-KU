@@ -43,6 +43,7 @@ dependencies:
   url_launcher: ^6.3.0
   screenshot: any
   path_provider: any
+  flutter_local_notifications: ^17.2.1
   share_plus: any
 
 

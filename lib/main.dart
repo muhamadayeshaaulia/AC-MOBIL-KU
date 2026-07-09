@@ -5,6 +5,7 @@ import 'presentation/providers/auth_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/navigation/app_routes.dart';
 import 'firebase_options.dart';
+import 'core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,9 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
   }
+
+  // Initialize notifications
+  await NotificationService().init();
 
   runApp(
     ChangeNotifierProvider(

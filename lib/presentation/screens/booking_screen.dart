@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
+import '../../core/services/notification_service.dart';
 import '../providers/auth_provider.dart';
 import 'payment_success_screen.dart';
 
@@ -122,6 +123,12 @@ class _BookingScreenState extends State<BookingScreen> {
         final String orderNumber = decoded['data'] != null ? (decoded['data']['order_number'] ?? '-') : '-';
 
         if (mounted) {
+          // Trigger local notification for successful booking
+          NotificationService().showBookingSuccessNotification(
+            orderNumber,
+            widget.bengkel['nama'] ?? '-',
+          );
+
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(

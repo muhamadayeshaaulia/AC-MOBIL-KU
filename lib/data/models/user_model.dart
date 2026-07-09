@@ -7,6 +7,7 @@ class UserModel {
   final double longitude;
   final String telepon;
   final String fotoUrl;
+  final String createdAt;
 
   UserModel({
     required this.uid,
@@ -17,6 +18,7 @@ class UserModel {
     required this.longitude,
     required this.telepon,
     required this.fotoUrl,
+    required this.createdAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class UserModel {
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
       telepon: json['telepon'] ?? '',
       fotoUrl: json['foto_url'] ?? '',
+      createdAt: json['created_at'] ?? '',
     );
   }
 
@@ -42,6 +45,7 @@ class UserModel {
       'longitude': longitude,
       'telepon': telepon,
       'foto_url': fotoUrl,
+      'created_at': createdAt,
     };
   }
 }
