@@ -26,6 +26,19 @@ class ManagerDashboardTab extends StatelessWidget {
     required this.onViewProfile,
   });
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return 'Selamat Pagi ☀️';
+    } else if (hour >= 12 && hour < 15) {
+      return 'Selamat Siang 🌤️';
+    } else if (hour >= 15 && hour < 18) {
+      return 'Selamat Sore ⛅';
+    } else {
+      return 'Selamat Malam 🌙';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final int servicesCount = servicesList.length;
@@ -41,7 +54,7 @@ class ManagerDashboardTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Premium Curved/Circular Gradient Header
+          // 1. Premium Curved Header with Dynamic Greeting
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -63,11 +76,56 @@ class ManagerDashboardTab extends StatelessWidget {
             ),
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Inner Circular Avatar & Status Card
+                // Welcome Greeting Row
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Circular Workshop Image with border ring
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _getGreeting(),
+                            style: const TextStyle(
+                              color: AppTheme.textSecondaryColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            nama,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          // Role Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.25)),
+                            ),
+                            child: const Text(
+                              'Pengelola Bengkel',
+                              style: TextStyle(
+                                color: AppTheme.primaryColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Circular Workshop Logo
                     Container(
                       padding: const EdgeInsets.all(3),
                       decoration: const BoxDecoration(
@@ -75,50 +133,64 @@ class ManagerDashboardTab extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: CircleAvatar(
-                        radius: 36,
+                        radius: 32,
                         backgroundImage: NetworkImage(fotoUrl),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                const Divider(color: Colors.white10, height: 1),
+                const SizedBox(height: 20),
+
+                // Workshop detail summary inside header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Nama Bengkel:',
+                          style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          bengkelName,
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+                      ),
+                      child: Row(
                         children: [
-                          Text(
-                            bengkelName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF10B981),
+                              shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF10B981),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Status: $statusBengkel',
-                                style: const TextStyle(
-                                  color: AppTheme.textSecondaryColor,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(width: 6),
+                          Text(
+                            'Status: $statusBengkel',
+                            style: const TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
+                
+                const SizedBox(height: 24),
                 
                 // Circular stats indicators row
                 Row(
