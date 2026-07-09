@@ -12,6 +12,8 @@ import 'dashboard_tabs/recommendations_tab.dart';
 import 'dashboard_tabs/bookings_tab.dart';
 import 'dashboard_tabs/notifications_tab.dart';
 import 'dashboard_tabs/profile_tab.dart';
+import 'dashboard_tabs/manager_dashboard_tab.dart';
+import 'dashboard_tabs/manager_info_tab.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -333,18 +335,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          RecommendationsTab(
-            userNama: userNama,
-            userRole: userRole,
-            recommendedBengkels: _recommendedBengkels,
-            isLoading: _isRecsLoading,
-            onRefresh: _loadRecommendations,
-          ),
-          BookingsTab(
-            bookingHistory: _bookingHistory,
-            isLoading: _isBookingsLoading,
-            onRefresh: _loadBookingHistory,
-          ),
+          userRole == 'Pengelola Bengkel'
+              ? ManagerDashboardTab(
+                  nama: userNama,
+                  myBengkelDetails: _myBengkelDetails,
+                  isBengkelLoading: _isBengkelLoading,
+                  servicesList: _myServices,
+                  bookingHistory: _bookingHistory,
+                  onAddLayanan: _addLayanan,
+                  onViewCatalog: () {
+                    setState(() => _currentIndex = 3);
+                  },
+                  onViewBookings: () {
+                    setState(() => _currentIndex = 1);
+                  },
+                  onViewProfile: () {
+                    setState(() => _currentIndex = 3);
+                  },
+                )
+              : RecommendationsTab(
+                  userNama: userNama,
+                  userRole: userRole,
+                  recommendedBengkels: _recommendedBengkels,
+                  isLoading: _isRecsLoading,
+                  onRefresh: _loadRecommendations,
+                ),
+          userRole == 'Pengelola Bengkel'
+              ? const ManagerInfoTab()
+              : BookingsTab(
+                  bookingHistory: _bookingHistory,
+                  isLoading: _isBookingsLoading,
+                  onRefresh: _loadBookingHistory,
+                ),
           const NotificationsTab(),
           ProfileTab(
             nama: userNama,
@@ -396,9 +418,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: 'Rekomendasi',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border_rounded),
-            activeIcon: Icon(Icons.bookmark_rounded),
-            label: 'Booking',
+            icon: Icon(Icons.info_outline_rounded),
+            activeIcon: Icon(Icons.info_rounded),
+            label: 'Informasi',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications_none_rounded),
@@ -416,11 +438,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _getAppBarTitle() {
+    final user = context.read<AuthProvider>().currentUser;
+    final isPengelola = user?.role == 'pengelola_bengkel';
     switch (_currentIndex) {
       case 0:
-        return 'AC MobilKu Rekomendasi';
+        return isPengelola ? 'Dashboard Bengkel' : 'AC MobilKu Rekomendasi';
       case 1:
-        return 'Reservasi Booking';
+        return isPengelola ? 'Aturan & Panduan Mitra' : 'Reservasi Booking';
       case 2:
         return 'Notifikasi Saya';
       case 3:
