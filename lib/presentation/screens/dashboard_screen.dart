@@ -31,8 +31,12 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   final ApiClient _apiClient = ApiClient();
 
   // Recommendations data
+  List<dynamic> _allRecommendedBengkels = [];
   List<dynamic> _recommendedBengkels = [];
   bool _isRecsLoading = true;
+  double _filterMaxDistance = 50.0;
+  double? _filterMaxHarga; // null means no limit
+  String _filterSortBy = 'rekomendasi'; // 'rekomendasi', 'jarak', 'rating', 'harga'
 
   // Bookings data
   List<dynamic> _bookingHistory = [];
@@ -341,19 +345,20 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Future<void> _loadRecommendations() async {
     try {
       setState(() => _isRecsLoading = true);
-      final response = await _apiClient.get('/recommendations?limit=5');
+      final response = await _apiClient.get('/recommendations?limit=50');
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         setState(() {
-          _recommendedBengkels = decoded['data'] ?? [];
+          _allRecommendedBengkels = decoded['data'] ?? [];
           _isRecsLoading = false;
         });
+        _applyFilters();
       } else {
         throw Exception();
       }
     } catch (e) {
       setState(() {
-        _recommendedBengkels = [
+        _allRecommendedBengkels = [
           {
             'nama': 'AC Jaya Abadi Sentosa (Demo)',
             'alamat': 'Jl. Daan Mogot Raya No.24, Jakarta Barat',
@@ -371,7 +376,181 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         ];
         _isRecsLoading = false;
       });
+      _applyFilters();
     }
+  }
+
+  void _applyFilters() {
+    debugPrint('Applying filters: maxDistance=$_filterMaxDistance, sortBy=$_filterSortBy');
+    debugPrint('Original bengkel count: ${_allRecommendedBengkels.length}');
+
+    List<dynamic> filtered = _allRecommendedBengkels.where((b) {
+      final double distance = (b['distance'] as num?)?.toDouble() ?? 0.0;
+      final double minHarga = (b['min_harga'] as num?)?.toDouble() ?? 0.0;
+      
+      bool passDistance = distance <= _filterMaxDistance;
+      bool passHarga = _filterMaxHarga == null || minHarga <= _filterMaxHarga!;
+      
+      // If a bengkel has 0 minHarga, it might mean they have no layanans. 
+      // We still include it unless they specifically filter for a strict price and we want to be strict.
+      return passDistance && passHarga;
+    }).toList();
+
+    debugPrint('Filtered count by distance: ${filtered.length}');
+
+    if (_filterSortBy == 'jarak') {
+      filtered.sort((a, b) => ((a['distance'] as num?)?.toDouble() ?? 0.0)
+          .compareTo((b['distance'] as num?)?.toDouble() ?? 0.0));
+    } else if (_filterSortBy == 'rating') {
+      filtered.sort((a, b) => ((b['avg_rating_keseluruhan'] as num?)?.toDouble() ?? 0.0)
+          .compareTo((a['avg_rating_keseluruhan'] as num?)?.toDouble() ?? 0.0));
+    } else if (_filterSortBy == 'harga') {
+      filtered.sort((a, b) => ((b['avg_rating_harga'] as num?)?.toDouble() ?? 0.0)
+          .compareTo((a['avg_rating_harga'] as num?)?.toDouble() ?? 0.0));
+    }
+
+    setState(() {
+      _recommendedBengkels = filtered.take(15).toList();
+    });
+    
+    debugPrint('Final displayed bengkel count: ${_recommendedBengkels.length}');
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _filterSortBy = 'rekomendasi';
+      _filterMaxDistance = 50.0;
+      _filterMaxHarga = null;
+    });
+    _applyFilters();
+  }
+
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).padding.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Filter Rekomendasi',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 24),
+                  const Text('Urutkan Berdasarkan', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 12,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Rekomendasi'),
+                        selected: _filterSortBy == 'rekomendasi',
+                        onSelected: (val) {
+                          if (val) setModalState(() => _filterSortBy = 'rekomendasi');
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Jarak Terdekat'),
+                        selected: _filterSortBy == 'jarak',
+                        onSelected: (val) {
+                          if (val) setModalState(() => _filterSortBy = 'jarak');
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Rating Tertinggi'),
+                        selected: _filterSortBy == 'rating',
+                        onSelected: (val) {
+                          if (val) setModalState(() => _filterSortBy = 'rating');
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Harga Terjangkau'),
+                        selected: _filterSortBy == 'harga',
+                        onSelected: (val) {
+                          if (val) setModalState(() => _filterSortBy = 'harga');
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Jarak Maksimal', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13)),
+                      Text('${_filterMaxDistance.toInt()} km',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                    ],
+                  ),
+                  Slider(
+                    value: _filterMaxDistance,
+                    min: 5.0,
+                    max: 50.0,
+                    divisions: 9,
+                    activeColor: AppTheme.primaryColor,
+                    inactiveColor: const Color(0xFF334155),
+                    onChanged: (val) {
+                      setModalState(() => _filterMaxDistance = val);
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('Batas Harga (Estimasi Terendah)', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.primaryColor.withOpacity(0.5)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<double?>(
+                        value: _filterMaxHarga,
+                        isExpanded: true,
+                        dropdownColor: AppTheme.cardColor,
+                        icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+                        items: const [
+                          DropdownMenuItem(value: null, child: Text('Semua Harga')),
+                          DropdownMenuItem(value: 500000.0, child: Text('Di bawah Rp 500.000')),
+                          DropdownMenuItem(value: 1000000.0, child: Text('Di bawah Rp 1.000.000')),
+                          DropdownMenuItem(value: 2000000.0, child: Text('Di bawah Rp 2.000.000')),
+                          DropdownMenuItem(value: 5000000.0, child: Text('Di bawah Rp 5.000.000')),
+                        ],
+                        onChanged: (val) {
+                          setModalState(() => _filterMaxHarga = val);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _applyFilters();
+                      },
+                      child: const Text('Terapkan Filter'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _loadBookingHistory() async {
@@ -485,7 +664,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                   isLoading: _isRecsLoading,
                   onRefresh: () async {
                     await _checkAndRequestLocation();
+                    await _loadRecommendations();
                   },
+                  onFilterTap: _showFilterSheet,
+                  onResetFilterTap: _resetFilters,
                 ),
           userRole == 'Pengelola Bengkel'
               ? const ManagerInfoTab()

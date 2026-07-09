@@ -11,6 +11,8 @@ class RecommendationsTab extends StatelessWidget {
   final List<dynamic> recommendedBengkels;
   final bool isLoading;
   final Future<void> Function() onRefresh;
+  final VoidCallback onFilterTap;
+  final VoidCallback onResetFilterTap;
 
   const RecommendationsTab({
     super.key,
@@ -20,6 +22,8 @@ class RecommendationsTab extends StatelessWidget {
     required this.recommendedBengkels,
     required this.isLoading,
     required this.onRefresh,
+    required this.onFilterTap,
+    required this.onResetFilterTap,
   });
 
   String _getGreeting() {
@@ -95,20 +99,35 @@ class RecommendationsTab extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             // Header for top CF recommendations
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Top-N Rekomendasi Terdekat',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                Icon(Icons.tune_rounded, size: 20, color: AppTheme.textSecondaryColor),
-              ],
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Top-N Rekomendasi Terdekat',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      AnimatedRefreshIcon(
+                        onPressed: onResetFilterTap,
+                        iconColor: AppTheme.textSecondaryColor,
+                      ),
+                      IconButton(
+                        onPressed: onFilterTap,
+                        icon: const Icon(Icons.tune_rounded, size: 20, color: AppTheme.primaryColor),
+                        tooltip: 'Filter Rekomendasi',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
             isLoading
                 ? const Center(
@@ -137,12 +156,63 @@ class RecommendationsTab extends StatelessWidget {
                           separatorBuilder: (_, __) => const SizedBox(height: 16),
                           itemBuilder: (context, index) {
                             final bengkel = recommendedBengkels[index];
-                            return BengkelCardWithCatalog(bengkel: bengkel, index: index);
+                            final bengkelId = bengkel['id']?.toString() ?? bengkel['nama'];
+                            return BengkelCardWithCatalog(
+                              key: ValueKey(bengkelId),
+                              bengkel: bengkel,
+                              index: index,
+                            );
                           },
                         ),
                       ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class AnimatedRefreshIcon extends StatefulWidget {
+  final VoidCallback onPressed;
+  final Color iconColor;
+
+  const AnimatedRefreshIcon({super.key, required this.onPressed, required this.iconColor});
+
+  @override
+  State<AnimatedRefreshIcon> createState() => _AnimatedRefreshIconState();
+}
+
+class _AnimatedRefreshIconState extends State<AnimatedRefreshIcon> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handlePress() {
+    _controller.forward(from: 0.0);
+    widget.onPressed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: _handlePress,
+      tooltip: 'Reset Filter',
+      icon: RotationTransition(
+        turns: _controller,
+        child: Icon(Icons.refresh_rounded, size: 20, color: widget.iconColor),
       ),
     );
   }
