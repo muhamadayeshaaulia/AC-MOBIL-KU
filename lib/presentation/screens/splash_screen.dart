@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
+import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -27,12 +29,28 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to Login after 2.5 seconds
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
+    // Check login state while animating
+    _checkAuthState();
+  }
+
+  Future<void> _checkAuthState() async {
+    // Wait for at least 2.5 seconds for the splash animation, and also wait for login state check
+    final authProvider = context.read<AuthProvider>();
+    
+    final results = await Future.wait([
+      Future.delayed(const Duration(milliseconds: 2500)),
+      authProvider.checkLoginState(),
+    ]);
+
+    final bool isLoggedIn = results[1] as bool;
+
+    if (mounted) {
+      if (isLoggedIn) {
+        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      } else {
         Navigator.pushReplacementNamed(context, AppRoutes.login);
       }
-    });
+    }
   }
 
   @override
