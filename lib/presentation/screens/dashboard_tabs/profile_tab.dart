@@ -244,6 +244,70 @@ class ProfileTab extends StatelessWidget {
                       )
                     : Column(
                         children: [
+                          // Cover photo bengkel with tap-to-change button
+                          GestureDetector(
+                            onTap: () => _pickWorkshopCover(context),
+                            child: Container(
+                              width: double.infinity,
+                              height: 160,
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    (myBengkelDetails!['foto_url'] != null && myBengkelDetails!['foto_url'].toString().isNotEmpty)
+                                        ? Image.network(
+                                            myBengkelDetails!['foto_url'],
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (ctx, err, _) => Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: const [
+                                                  Icon(Icons.broken_image_outlined, color: Colors.white24, size: 40),
+                                                  SizedBox(height: 8),
+                                                  Text('Gagal memuat gambar', style: TextStyle(color: Colors.white24, fontSize: 11)),
+                                                ],
+                                              ),
+                                            ),
+                                          )
+                                        : Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: const [
+                                              Icon(Icons.add_photo_alternate_outlined, color: Colors.white24, size: 40),
+                                              SizedBox(height: 8),
+                                              Text('Ketuk untuk tambahkan foto cover', style: TextStyle(color: Colors.white24, fontSize: 12)),
+                                            ],
+                                          ),
+                                    // Dark overlay with camera icon on top of the image
+                                    Positioned(
+                                      bottom: 8,
+                                      right: 10,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.55),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
+                                            SizedBox(width: 4),
+                                            Text('Ganti Foto Cover', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                           _buildProfileItem(Icons.storefront_outlined, 'Nama Bengkel', myBengkelDetails!['nama'] ?? '-'),
                           _buildProfileItem(Icons.location_on_outlined, 'Alamat Bengkel', myBengkelDetails!['alamat'] ?? '-'),
                           _buildProfileItem(Icons.access_time_rounded, 'Jam Kerja', '${myBengkelDetails!['jam_buka'] ?? '-'} - ${myBengkelDetails!['jam_tutup'] ?? '-'}'),
