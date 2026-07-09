@@ -41,6 +41,9 @@ dependencies:
   geocoding: ^3.0.0
   image_picker: ^1.1.2
   url_launcher: ^6.3.0
+  screenshot: any
+  path_provider: any
+  share_plus: any
 
 
 

@@ -721,23 +721,27 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         unselectedItemColor: AppTheme.textSecondaryColor,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home_rounded),
             label: 'Rekomendasi',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.info_outline_rounded),
-            activeIcon: Icon(Icons.info_rounded),
-            label: 'Informasi',
+            icon: userRole == 'Pengelola Bengkel'
+                ? const Icon(Icons.info_outline_rounded)
+                : const Icon(Icons.assignment_outlined),
+            activeIcon: userRole == 'Pengelola Bengkel'
+                ? const Icon(Icons.info_rounded)
+                : const Icon(Icons.assignment),
+            label: userRole == 'Pengelola Bengkel' ? 'Informasi' : 'Riwayat',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.notifications_none_rounded),
             activeIcon: Icon(Icons.notifications_rounded),
             label: 'Notifikasi',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline_rounded),
             activeIcon: Icon(Icons.person_rounded),
             label: 'Profil',

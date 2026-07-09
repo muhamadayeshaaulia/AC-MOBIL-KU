@@ -22,10 +22,17 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final ApiClient _apiClient = ApiClient();
   final _catatanController = TextEditingController();
+  final _dpController = TextEditingController(text: '50000');
 
   DateTime? _selectedDate;
   String? _selectedTime;
+  String _selectedPaymentMethod = 'Transfer Bank';
   bool _isSubmitting = false;
+
+  final List<String> _paymentMethods = [
+    'Transfer Bank',
+    'E-Wallet (GoPay/OVO/Dana)',
+  ];
 
   final List<String> _timeSlots = [
     '08:00', '09:00', '10:00', '11:00',
@@ -35,6 +42,7 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void dispose() {
     _catatanController.dispose();
+    _dpController.dispose();
     super.dispose();
   }
 
@@ -82,18 +90,30 @@ class _BookingScreenState extends State<BookingScreen> {
       return;
     }
 
+    final double dp = double.tryParse(_dpController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    if (dp < 50000) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nominal DP minimal Rp 50.000'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final date = _selectedDate!;
       final timeParts = _selectedTime!.split(':');
-      final scheduleDateTime = DateTime(date.year, date.month, date.day,
-          int.parse(timeParts[0]), int.parse(timeParts[1]));
+      final formattedDate = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${timeParts[0]}:${timeParts[1]}";
+
+      final bId = (widget.bengkel['id'] as num?)?.toInt() ?? int.tryParse(widget.bengkel['id'].toString()) ?? 0;
+      final lId = (widget.selectedLayanan['id'] as num?)?.toInt() ?? int.tryParse(widget.selectedLayanan['id'].toString()) ?? 0;
 
       final response = await _apiClient.post('/booking', {
-        'bengkel_id': widget.bengkel['id'],
-        'layanan_id': widget.selectedLayanan['id'],
-        'jadwal': scheduleDateTime.toIso8601String(),
+        'bengkel_id': bId,
+        'layanan_id': lId,
+        'tanggal_booking': formattedDate,
         'catatan': _catatanController.text.trim(),
+        'metode_pembayaran': _selectedPaymentMethod,
+        'nominal_dp': dp,
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -108,7 +128,8 @@ class _BookingScreenState extends State<BookingScreen> {
         }
       } else {
         final decoded = jsonDecode(response.body);
-        throw Exception(decoded['message'] ?? 'Terjadi kesalahan.');
+        final errorMsg = decoded['error'] ?? decoded['message'] ?? 'Terjadi kesalahan.';
+        throw Exception(errorMsg);
       }
     } catch (e) {
       if (mounted) {
@@ -258,6 +279,65 @@ class _BookingScreenState extends State<BookingScreen> {
               decoration: InputDecoration(
                 hintText: 'Ceritakan keluhan atau kebutuhan AC mobil Anda...',
                 hintStyle: const TextStyle(color: AppTheme.textSecondaryColor),
+                filled: true,
+                fillColor: AppTheme.cardColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppTheme.primaryColor),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+            const Text('Metode Pembayaran', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedPaymentMethod,
+                  isExpanded: true,
+                  dropdownColor: AppTheme.cardColor,
+                  icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  items: _paymentMethods.map((method) {
+                    return DropdownMenuItem<String>(
+                      value: method,
+                      child: Text(method),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedPaymentMethod = val);
+                    }
+                  },
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+            const Text('Nominal DP (Min. Rp 50.000)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _dpController,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                prefixText: 'Rp ',
+                prefixStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 filled: true,
                 fillColor: AppTheme.cardColor,
                 border: OutlineInputBorder(
