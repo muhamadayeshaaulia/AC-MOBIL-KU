@@ -332,7 +332,6 @@ class _BookingScreenState extends State<BookingScreen> {
                               ? Colors.grey.withOpacity(0.5)
                               : (isSelected ? Colors.white : Colors.white70),
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          decoration: isFull ? TextDecoration.lineThrough : null,
                         ),
                       ),
                     ),
