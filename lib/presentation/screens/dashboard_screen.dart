@@ -11,7 +11,6 @@ import '../providers/auth_provider.dart';
 // Import Tabs
 import 'dashboard_tabs/recommendations_tab.dart';
 import 'dashboard_tabs/bookings_tab.dart';
-import 'dashboard_tabs/notifications_tab.dart';
 import 'dashboard_tabs/profile_tab.dart';
 import 'dashboard_tabs/manager_dashboard_tab.dart';
 import 'dashboard_tabs/manager_info_tab.dart';
@@ -702,7 +701,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                   isLoading: _isBookingsLoading,
                   onRefresh: _loadBookingHistory,
                 ),
-          const NotificationsTab(),
           ProfileTab(
             nama: userNama,
             email: userEmail,
@@ -743,7 +741,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             } else {
               _loadRecommendations();
             }
-          } else if (index == 3) {
+          } else if (index == 2) {
             if (isManager) {
               _loadMyBengkelDetails();
             }
@@ -771,11 +769,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             label: userRole == 'Pengelola Bengkel' ? 'Informasi' : 'Riwayat',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none_rounded),
-            activeIcon: Icon(Icons.notifications_rounded),
-            label: 'Notifikasi',
-          ),
-          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline_rounded),
             activeIcon: Icon(Icons.person_rounded),
             label: 'Profil',
@@ -794,8 +787,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       case 1:
         return isPengelola ? 'Aturan & Panduan Mitra' : 'Reservasi Booking';
       case 2:
-        return 'Notifikasi Saya';
-      case 3:
         return 'Profil Pengguna';
       default:
         return 'AC MobilKu';

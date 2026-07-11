@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
@@ -26,6 +27,13 @@ class NotificationService {
         // Handle notification tap
       },
     );
+
+    // Request permissions for Android 13+
+    if (Platform.isAndroid) {
+      await _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    }
   }
 
   Future<void> showBookingSuccessNotification(String orderNumber, String bengkelName) async {
@@ -47,6 +55,29 @@ class NotificationService {
       DateTime.now().millisecond,
       'Booking Berhasil!',
       'Reservasi Anda di $bengkelName dengan ID $orderNumber telah berhasil dikonfirmasi.',
+      platformChannelSpecifics,
+    );
+  }
+
+  Future<void> showBookingAcceptedNotification(String orderNumber, String customerName) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'booking_channel_id',
+      'Booking Notifications',
+      channelDescription: 'Notifications for successful bookings',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+    );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: DarwinNotificationDetails(),
+    );
+
+    await _flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecond,
+      'Booking Diterima!',
+      'Anda telah menerima reservasi dari $customerName (ID: $orderNumber).',
       platformChannelSpecifics,
     );
   }

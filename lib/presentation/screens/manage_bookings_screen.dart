@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
+import '../../core/services/notification_service.dart';
 
 class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
@@ -40,19 +41,26 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
     }
   }
 
-  Future<void> _updateBookingStatus(int bookingId, String newStatus) async {
+  Future<void> _updateBookingStatus(int bookingId, String newStatus, String orderNumber, String customerName) async {
     try {
       final response = await _apiClient.put('/booking/$bookingId/status', {
         'status': newStatus,
       });
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Status booking berhasil diperbarui ke "$newStatus"!'),
-            backgroundColor: const Color(0xFF10B981),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Status booking berhasil diperbarui ke "$newStatus"!'),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        }
+
+        if (newStatus == 'dikonfirmasi') {
+          NotificationService().showBookingAcceptedNotification(orderNumber, customerName);
+        }
+
         _loadBookingQueue();
       } else {
         throw Exception('Failed to update status');
@@ -130,6 +138,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                   itemBuilder: (context, index) {
                     final booking = _bookingQueue[index];
                     final int bookingId = booking['id'] as int;
+                    final String orderNumber = booking['order_number'] ?? '#$bookingId';
                     final String status = booking['status'] ?? 'menunggu';
                     final String catatan = booking['catatan'] ?? '-';
                     final String tanggal = booking['tanggal_booking'] ?? '';
@@ -173,7 +182,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  '${booking['order_number'] ?? '#$bookingId'} • ${_formatDateTime(tanggal)}',
+                                  '$orderNumber • ${_formatDateTime(tanggal)}',
                                   style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 11, fontWeight: FontWeight.bold),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -269,7 +278,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                               children: [
                                 Expanded(
                                   child: OutlinedButton(
-                                    onPressed: () => _updateBookingStatus(bookingId, 'dibatalkan'),
+                                    onPressed: () => _updateBookingStatus(bookingId, 'dibatalkan', orderNumber, pelangganNama),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: Colors.redAccent,
                                       side: const BorderSide(color: Colors.redAccent),
@@ -282,7 +291,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () => _updateBookingStatus(bookingId, 'dikonfirmasi'),
+                                    onPressed: () => _updateBookingStatus(bookingId, 'dikonfirmasi', orderNumber, pelangganNama),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.primaryColor,
                                       foregroundColor: Colors.white,
@@ -299,7 +308,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                onPressed: () => _updateBookingStatus(bookingId, 'selesai'),
+                                onPressed: () => _updateBookingStatus(bookingId, 'selesai', orderNumber, pelangganNama),
                                 icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
                                 label: const Text('SELESAIKAN PENGERJAAN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                                 style: ElevatedButton.styleFrom(
