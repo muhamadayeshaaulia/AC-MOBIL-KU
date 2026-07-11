@@ -76,8 +76,31 @@ class NotificationService {
 
     await _flutterLocalNotificationsPlugin.show(
       DateTime.now().millisecond,
-      'Booking Diterima!',
+      'Booking Diterima! ✅',
       'Anda telah menerima reservasi dari $customerName (ID: $orderNumber).',
+      platformChannelSpecifics,
+    );
+  }
+
+  Future<void> showBookingCompletedNotification(String orderNumber, String customerName) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'booking_channel_id',
+      'Booking Notifications',
+      channelDescription: 'Notifications for successful bookings',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+    );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: DarwinNotificationDetails(),
+    );
+
+    await _flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecond,
+      'Pengerjaan Selesai!',
+      'Servis untuk $customerName (ID: $orderNumber) telah selesai dikerjakan.',
       platformChannelSpecifics,
     );
   }

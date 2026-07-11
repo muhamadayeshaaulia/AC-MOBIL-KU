@@ -268,6 +268,36 @@ class _BengkelCardWithCatalogState extends State<BengkelCardWithCatalog> {
     return 'Rp ${str.replaceAllMapped(reg, (m) => '${m[1]}.')}';
   }
 
+  bool _isOpen(Map<String, dynamic> bengkel) {
+    if (bengkel['status'] == 'Tutup' || bengkel['status'] == 'nonaktif') return false;
+
+    final jamBuka = bengkel['jam_buka'] as String?;
+    final jamTutup = bengkel['jam_tutup'] as String?;
+    
+    if (jamBuka == null || jamTutup == null || jamBuka.isEmpty || jamTutup.isEmpty) {
+      return bengkel['status'] == 'Buka' || bengkel['status'] == 'aktif';
+    }
+
+    try {
+      final now = DateTime.now();
+      final currentMinutes = now.hour * 60 + now.minute;
+
+      final bukaParts = jamBuka.split(':');
+      final bukaMinutes = int.parse(bukaParts[0]) * 60 + int.parse(bukaParts[1]);
+
+      final tutupParts = jamTutup.split(':');
+      final tutupMinutes = int.parse(tutupParts[0]) * 60 + int.parse(tutupParts[1]);
+
+      if (bukaMinutes < tutupMinutes) {
+        return currentMinutes >= bukaMinutes && currentMinutes <= tutupMinutes;
+      } else {
+        return currentMinutes >= bukaMinutes || currentMinutes <= tutupMinutes;
+      }
+    } catch (e) {
+      return bengkel['status'] == 'Buka' || bengkel['status'] == 'aktif';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bengkel = widget.bengkel;
@@ -332,15 +362,15 @@ class _BengkelCardWithCatalogState extends State<BengkelCardWithCatalog> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (bengkel['status'] == 'Buka' || bengkel['status'] == 'aktif')
+                    color: _isOpen(bengkel)
                         ? const Color(0xFF10B981).withOpacity(0.1)
                         : Colors.redAccent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    (bengkel['status'] == 'Buka' || bengkel['status'] == 'aktif') ? 'Buka' : 'Tutup',
+                    _isOpen(bengkel) ? 'Buka' : 'Tutup',
                     style: TextStyle(
-                      color: (bengkel['status'] == 'Buka' || bengkel['status'] == 'aktif')
+                      color: _isOpen(bengkel)
                           ? const Color(0xFF10B981)
                           : Colors.redAccent,
                       fontSize: 11,

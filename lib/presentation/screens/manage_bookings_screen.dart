@@ -48,17 +48,10 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
       });
 
       if (response.statusCode == 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Status booking berhasil diperbarui ke "$newStatus"!'),
-              backgroundColor: const Color(0xFF10B981),
-            ),
-          );
-        }
-
         if (newStatus == 'dikonfirmasi') {
           NotificationService().showBookingAcceptedNotification(orderNumber, customerName);
+        } else if (newStatus == 'selesai') {
+          NotificationService().showBookingCompletedNotification(orderNumber, customerName);
         }
 
         _loadBookingQueue();

@@ -757,7 +757,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home_rounded),
-            label: 'Rekomendasi',
+            label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: userRole == 'Pengelola Bengkel'
@@ -783,7 +783,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final isPengelola = user?.role == 'pengelola_bengkel';
     switch (_currentIndex) {
       case 0:
-        return isPengelola ? 'Dashboard Bengkel' : 'AC MobilKu Rekomendasi';
+        return isPengelola ? 'Dashboard Bengkel' : 'Home';
       case 1:
         return isPengelola ? 'Aturan & Panduan Mitra' : 'Reservasi Booking';
       case 2:
