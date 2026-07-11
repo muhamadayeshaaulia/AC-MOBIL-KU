@@ -30,6 +30,8 @@ class _BookingScreenState extends State<BookingScreen> {
   String? _selectedTime;
   String _selectedPaymentMethod = 'Transfer Bank';
   bool _isSubmitting = false;
+  bool _isLoadingSlots = false;
+  List<String> _fullSlots = [];
 
   final List<String> _paymentMethods = [
     'Transfer Bank',
@@ -67,7 +69,38 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() {
+        _selectedDate = picked;
+        _selectedTime = null; // reset selected time
+      });
+      _fetchFullSlots();
+    }
+  }
+
+  Future<void> _fetchFullSlots() async {
+    if (_selectedDate == null) return;
+    setState(() => _isLoadingSlots = true);
+
+    try {
+      final dateStr = "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
+      final bId = (widget.bengkel['id'] as num?)?.toInt() ?? int.tryParse(widget.bengkel['id'].toString()) ?? 0;
+      
+      final response = await _apiClient.get('/booking/slots?bengkel_id=$bId&tanggal=$dateStr');
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final data = decoded['data'] as List<dynamic>? ?? [];
+        setState(() {
+          _fullSlots = data.map((e) => e.toString()).toList();
+        });
+      } else {
+        setState(() => _fullSlots = []);
+      }
+    } catch (e) {
+      setState(() => _fullSlots = []);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingSlots = false);
+      }
     }
   }
 
@@ -154,7 +187,10 @@ class _BookingScreenState extends State<BookingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal membuat reservasi: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -261,33 +297,48 @@ class _BookingScreenState extends State<BookingScreen> {
             const SizedBox(height: 24),
             const Text('Pilih Jam', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: _timeSlots.map((time) {
-                final bool isSelected = _selectedTime == time;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedTime = time),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppTheme.primaryColor : AppTheme.cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.08),
+            if (_isLoadingSlots)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              )
+            else
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: _timeSlots.map((time) {
+                  final bool isSelected = _selectedTime == time;
+                  final bool isFull = _fullSlots.contains(time);
+
+                  return GestureDetector(
+                    onTap: isFull ? null : () => setState(() => _selectedTime = time),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isFull
+                            ? Colors.grey.withOpacity(0.1)
+                            : (isSelected ? AppTheme.primaryColor : AppTheme.cardColor),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isFull
+                              ? Colors.transparent
+                              : (isSelected ? AppTheme.primaryColor : Colors.white.withOpacity(0.08)),
+                        ),
+                      ),
+                      child: Text(
+                        isFull ? '$time (Penuh)' : time,
+                        style: TextStyle(
+                          color: isFull
+                              ? Colors.grey.withOpacity(0.5)
+                              : (isSelected ? Colors.white : Colors.white70),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          decoration: isFull ? TextDecoration.lineThrough : null,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      time,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.white70,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+                  );
+                }).toList(),
+              ),
 
             const SizedBox(height: 24),
             const Text('Catatan / Keluhan', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
