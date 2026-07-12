@@ -3,12 +3,13 @@ import '../../core/theme/app_theme.dart';
 import 'add_service_screen.dart';
 import 'edit_service_screen.dart';
 
-class ManageCatalogScreen extends StatelessWidget {
+class ManageCatalogScreen extends StatefulWidget {
   final List<dynamic> servicesList;
   final bool isServicesLoading;
   final Future<void> Function(String nama, String deskripsi, double harga, String fotoUrl) onAddLayanan;
   final Future<void> Function(int id) onDeleteLayanan;
   final Future<void> Function(int id, String nama, String deskripsi, double harga, String fotoUrl) onUpdateLayanan;
+  final Future<List<dynamic>> Function() onFetchServices;
 
   const ManageCatalogScreen({
     super.key,
@@ -17,7 +18,34 @@ class ManageCatalogScreen extends StatelessWidget {
     required this.onAddLayanan,
     required this.onDeleteLayanan,
     required this.onUpdateLayanan,
+    required this.onFetchServices,
   });
+
+  @override
+  State<ManageCatalogScreen> createState() => _ManageCatalogScreenState();
+}
+
+class _ManageCatalogScreenState extends State<ManageCatalogScreen> {
+  late List<dynamic> _localServices;
+  late bool _isLoading;
+
+  @override
+  void initState() {
+    super.initState();
+    _localServices = widget.servicesList;
+    _isLoading = widget.isServicesLoading;
+  }
+
+  Future<void> _refreshServices() async {
+    setState(() => _isLoading = true);
+    final freshData = await widget.onFetchServices();
+    if (mounted) {
+      setState(() {
+        _localServices = freshData;
+        _isLoading = false;
+      });
+    }
+  }
 
   String _formatRupiah(double amount) {
     final int val = amount.toInt();
@@ -36,23 +64,24 @@ class ManageCatalogScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => AddServiceScreen(
-                    onAddLayanan: onAddLayanan,
+                    onAddLayanan: widget.onAddLayanan,
                   ),
                 ),
               );
+              _refreshServices();
             },
             icon: const Icon(Icons.add_circle_outline_rounded, color: AppTheme.primaryColor),
           ),
         ],
       ),
-      body: isServicesLoading
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : servicesList.isEmpty
+          : _localServices.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -70,15 +99,16 @@ class ManageCatalogScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => AddServiceScreen(
-                                onAddLayanan: onAddLayanan,
+                                onAddLayanan: widget.onAddLayanan,
                               ),
                             ),
                           );
+                          _refreshServices();
                         },
                         icon: const Icon(Icons.add),
                         label: const Text('TAMBAH JASA'),
@@ -88,9 +118,9 @@ class ManageCatalogScreen extends StatelessWidget {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(24.0),
-                  itemCount: servicesList.length,
+                  itemCount: _localServices.length,
                   itemBuilder: (context, index) {
-                    final item = servicesList[index];
+                    final item = _localServices[index];
                     final price = (item['estimasi_harga'] as num?)?.toDouble() ?? 0.0;
                     
                     final String rawPhotoUrl = item['foto_url'] ?? '';
@@ -154,16 +184,17 @@ class ManageCatalogScreen extends StatelessWidget {
                               IconButton(
                                 constraints: const BoxConstraints(),
                                 padding: const EdgeInsets.all(8),
-                                onPressed: () {
-                                  Navigator.push(
+                                onPressed: () async {
+                                  await Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => EditServiceScreen(
                                         service: item,
-                                        onUpdateLayanan: onUpdateLayanan,
+                                        onUpdateLayanan: widget.onUpdateLayanan,
                                       ),
                                     ),
                                   );
+                                  _refreshServices();
                                 },
                                 icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryColor, size: 20),
                               ),
@@ -194,7 +225,8 @@ class ManageCatalogScreen extends StatelessWidget {
                                     ),
                                   );
                                   if (confirm == true) {
-                                    await onDeleteLayanan(item['id'] as int);
+                                    await widget.onDeleteLayanan(item['id'] as int);
+                                    _refreshServices();
                                   }
                                 },
                                 icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),

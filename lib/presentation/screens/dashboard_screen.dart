@@ -661,6 +661,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                           onAddLayanan: _addLayanan,
                           onDeleteLayanan: _deleteLayanan,
                           onUpdateLayanan: _updateLayanan,
+                          onFetchServices: () async {
+                            await _loadMyServices(_myBengkelDetails!['id']);
+                            return _myServices;
+                          },
                         ),
                       ),
                     ).then((_) {
